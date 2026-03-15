@@ -1,0 +1,7 @@
+# AskElira Framework — core dependencies
+anthropic>=0.18.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Optional: long-term memory via Pinecone
+# pinecone-client>=3.0.0
