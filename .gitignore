@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+data/loop.log
+data/seeds/*.txt
+data/active_positions.json
+MiroFish/
