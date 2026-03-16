@@ -8,12 +8,16 @@ Generic multi-agent orchestration platform with swarm intelligence validation.
 Research → Simulate → Audit → Decide → Execute
 ```
 
+![Dashboard](https://img.shields.io/badge/Dashboard-Live-green) ![License](https://img.shields.io/badge/License-MIT-blue)
+
 ---
 
-## What Is This?
+## 🎯 What Is This?
 
 AskElira is a pattern for building **5-agent AI pipelines** where every decision
 is validated by a 1000-agent swarm (MiroFish) before any action is taken.
+
+**NEW:** Real-time pipeline visualization with MiroFish node network expansion!
 
 The framework is domain-agnostic. The same pattern powers:
 
@@ -67,6 +71,35 @@ formation, and returns a confidence score. Free to run, no API cost.
 
 ---
 
+## 🎨 Real-Time Dashboard
+
+**Visualize your agent pipeline as it runs:**
+
+```bash
+# Install dependencies
+pip install -e .
+pip install rich fastapi "uvicorn[standard]" websockets
+
+# Run demo mode
+python -m dashboard --demo examples/trading_pipeline.json
+```
+
+**Features:**
+- 🖥️ Terminal UI (Rich) + Web UI (localhost:8888)
+- 🔄 Real-time updates via WebSocket
+- 🧠 MiroFish node expansion (see swarm clusters debate)
+- 📊 Live metrics (time, cost, accuracy)
+- 🎯 Works with ANY agent pipeline
+
+**Example configs:**
+- `examples/trading_pipeline.json` - Trading system (5 agents)
+- `examples/marketing_pipeline.json` - Viral marketing (5 agents)
+- `examples/research_pipeline.json` - Research pipeline (3 agents)
+
+**Browser auto-opens to:** http://localhost:8888
+
+---
+
 ## Quick Start
 
 ```bash
@@ -75,13 +108,19 @@ cd askelira
 pip install -e .
 ```
 
-Run the trader example:
+**Try the dashboard:**
+
+```bash
+python -m dashboard --demo examples/trading_pipeline.json
+```
+
+**Run the trader example:**
 
 ```bash
 python examples/trader/trader_research_agent.py
 ```
 
-Run the marketing example:
+**Run the marketing example:**
 
 ```bash
 python examples/marketing/marketing_research_agent.py
