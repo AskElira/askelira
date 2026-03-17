@@ -1,26 +1,46 @@
 # AskElira
 
-[![GitHub Stars](https://img.shields.io/github/stars/jellyforex/askelira?style=social)](https://github.com/jellyforex/askelira)
-[![Accuracy](https://img.shields.io/badge/Accuracy-65.3%25-success)](https://github.com/jellyforex/AskEliraTrader)
-[![Cost](https://img.shields.io/badge/Cost-$0.007--$7-blue)](#agent-scaling)
+[![GitHub Stars](https://img.shields.io/github/stars/AskElira/askelira?style=social)](https://github.com/AskElira/askelira)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue)](https://www.python.org/)
 
 **Multi-agent swarm intelligence for better decisions.**
+
+Build AI systems that validate every decision with 1,000 to 1,000,000 simulated agents before taking action.
 
 ```python
 pip install askelira
 
 from askelira import Orchestrator
 
-# Run a prediction with 10k agents
-result = Orchestrator(agents=10000).predict("Will NQ go up today?")
+# Ask any question
+result = Orchestrator(agents=10000).predict(
+    "Should we launch this feature next week?"
+)
 
-print(result.bias)        # BULLISH
-print(result.confidence)  # 72%
-print(result.cost)        # $0.07
+print(result.decision)    # YES / NO
+print(result.confidence)  # 78%
+print(result.reasoning)   # "Market timing is optimal, competitor..."
 ```
 
-**Scale from demos to mission-critical:** Test with 1,000 agents ($0.007) or validate with 1,000,000 agents ($7).
+**Domain-agnostic:** Sales, marketing, product, research, trading, hiring — if it needs validation, AskElira can help.
+
+---
+
+## 🎯 What Is This?
+
+AskElira is a **framework for building validated AI decision systems**.
+
+Instead of trusting a single AI response, every decision is debated by a swarm of simulated agents (1k to 1M) representing different perspectives before you act.
+
+**The pattern:**
+1. 🔍 **Research** - Scout relevant data
+2. 🐟 **Simulate** - Run swarm debate (1k-1M agents)
+3. ✅ **Audit** - Validate reasoning
+4. 🎯 **Decide** - Synthesize final answer
+5. 📊 **Execute** - Take action & learn
+
+**It's generic.** Fork it. Adapt it to your domain. Ship.
 
 ---
 
@@ -28,23 +48,60 @@ print(result.cost)        # $0.07
 
 You control the accuracy/cost tradeoff:
 
-| Level | Agents | Cost/Prediction | Best For |
-|-------|--------|-----------------|----------|
-| **Fast** | 1,000 | $0.007 | Quick tests, demos, prototyping |
-| **Standard** | 10,000 | $0.07 | Daily production, regular decisions |
-| **Accurate** | 100,000 | $0.70 | High-stakes decisions, important trades |
-| **Maximum** | 1,000,000 | $7.00 | Mission-critical validation, maximum confidence |
+| Level | Agents | Cost/Decision | Best For |
+|-------|--------|---------------|----------|
+| **Fast** | 1,000 | $0.007 | Quick tests, demos, brainstorming |
+| **Standard** | 10,000 | $0.07 | Daily decisions, regular operations |
+| **Accurate** | 100,000 | $0.70 | High-stakes decisions, big investments |
+| **Maximum** | 1,000,000 | $7.00 | Mission-critical validation, major bets |
 
-**Real-world performance** (NQ futures trading):
-- 65.3% accuracy across 144 backtested trades
-- 2.7x profit factor (bigger wins than losses)
-- <30 seconds per prediction
+**Why scale matters:** More agents = more diverse perspectives = better decisions.
+
+---
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+pip install askelira
+```
+
+Or clone and customize:
+
+```bash
+git clone https://github.com/AskElira/askelira.git
+cd askelira
+pip install -r requirements.txt
+```
+
+### Basic Usage
+
+```python
+from askelira import Orchestrator
+
+# Initialize with your preferred agent count
+orch = Orchestrator(agents=10000)
+
+# Ask any question
+result = orch.predict(
+    question="Should we hire this candidate?",
+    context={
+        "experience": "5 years Python",
+        "culture_fit": "high",
+        "salary_ask": "$150k"
+    }
+)
+
+# Get validated answer
+print(f"Decision: {result.decision}")
+print(f"Confidence: {result.confidence}%")
+print(f"Reasoning: {result.reasoning}")
+```
 
 ---
 
 ## 🏗️ Architecture
-
-AskElira uses a 4-agent pipeline validated by swarm intelligence:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -69,258 +126,13 @@ AskElira uses a 4-agent pipeline validated by swarm intelligence:
 └─────────────────────────────────────────────────────┘
 ```
 
-### Agent Roles
-
-1. **Alba (Research)** - Scouts live data: web search, calendars, technical indicators
-2. **David (Swarm)** - Runs MiroFish simulations: 1k-1M agents debate the question
-3. **Vex (Audit)** - Validates reasoning: checks for bias, errors, logical flaws
-4. **Elira (Orchestrator)** - Makes final decision: routes tasks, synthesizes results
-5. **Steven (Executor)** - Tracks outcomes: learns from results, improves over time
-
----
-
-## 🚀 Quick Start
-
-### Installation
-
-```bash
-pip install askelira
-```
-
-Or clone and install locally:
-
-```bash
-git clone https://github.com/jellyforex/askelira.git
-cd askelira
-pip install -r requirements.txt
-```
-
-### Basic Usage
-
-```python
-from askelira import Orchestrator
-
-# Initialize with your preferred agent count
-orch = Orchestrator(agents=10000)  # Default: 1,000
-
-# Run a prediction
-result = orch.predict(
-    question="Will Bitcoin hit $100k this week?",
-    context={
-        "current_price": 67000,
-        "trend": "bullish",
-        "volume": "high"
-    }
-)
-
-# Access results
-print(f"Prediction: {result.bias}")
-print(f"Confidence: {result.confidence}%")
-print(f"Reasoning: {result.reasoning}")
-print(f"Cost: ${result.cost:.4f}")
-```
-
-### Advanced: Custom Agent Counts
-
-```python
-# Fast test (1k agents)
-quick = Orchestrator(agents=1000).predict("Quick test question")
-
-# Production (10k agents)  
-prod = Orchestrator(agents=10000).predict("Daily production decision")
-
-# High-stakes (100k agents)
-important = Orchestrator(agents=100000).predict("Critical business decision")
-
-# Maximum validation (1M agents)
-critical = Orchestrator(agents=1000000).predict("Mission-critical validation")
-```
-
----
-
-## 📊 Real-World Examples
-
-### Example 1: NQ Futures Trading
-
-**Repo:** [AskEliraTrader](https://github.com/jellyforex/AskEliraTrader)
-
-Daily predictions for Nasdaq-100 futures:
-
-```python
-from askelira import Orchestrator
-
-# Morning prediction
-result = Orchestrator(agents=10000).predict("Will NQ close higher today?")
-
-if result.confidence >= 70:
-    print(f"Trade signal: {result.bias} ({result.confidence}%)")
-    # Execute trade...
-```
-
-**Performance:**
-- 65.3% accuracy (144 trades)
-- $10,690 profit
-- 1.32x profit factor
-- $0.07 per prediction
-
-### Example 2: Viral Marketing Campaigns
-
-**Repo:** [AskEliraMarketing](https://github.com/jellyforex/askeliramarketing)
-
-Test campaign tactics before publishing:
-
-```python
-from askelira import Orchestrator
-
-# Test 3 campaign concepts
-concepts = ["Technical deep-dive", "Story-driven", "Results-only"]
-
-for concept in concepts:
-    result = Orchestrator(agents=50000).predict(
-        f"Will this campaign go viral: {concept}?"
-    )
-    print(f"{concept}: {result.confidence}% confidence")
-
-# Winner: Technical deep-dive (78% confidence)
-```
-
-**Results:**
-- 82% accuracy predicting viral content
-- $0.02 per campaign test
-- Saved $1000+ on failed campaigns
-
----
-
-## 🎨 Dashboard
-
-Real-time pipeline visualization with MiroFish network:
-
-```bash
-# Install dashboard dependencies
-pip install rich websockets
-
-# Run terminal dashboard
-python -m dashboard --demo examples/trading_pipeline.json
-
-# Run web dashboard
-python -m dashboard --web
-# Open http://localhost:8888
-```
-
-**Features:**
-- Live agent node network
-- MiroFish sub-cluster expansion
-- Real-time consensus tracking
-- Event log with timestamps
-- WebSocket live updates
-
----
-
-## 🛠️ Build Your Own
-
-Fork this framework and adapt to any domain:
-
-### 1. Clone the Repo
-
-```bash
-git clone https://github.com/jellyforex/askelira.git
-cd askelira
-```
-
-### 2. Create Your Agents
-
-```python
-# my_agents/alba.py - Research agent
-def scout_data(question):
-    # Your custom data sources
-    return research_data
-
-# my_agents/david.py - Swarm simulator
-def run_swarm(question, num_agents):
-    # Your custom swarm logic
-    return swarm_result
-
-# my_agents/elira.py - Orchestrator
-def make_decision(research, swarm_result):
-    # Your custom decision logic
-    return final_decision
-```
-
-### 3. Run Your Pipeline
-
-```python
-from askelira import Orchestrator
-
-result = Orchestrator(
-    agents=10000,
-    research_agent=my_agents.alba,
-    swarm_agent=my_agents.david,
-    orchestrator=my_agents.elira
-).predict("Your domain-specific question")
-```
-
-**Example domains:**
-- **Sales:** "Will this prospect convert?"
-- **Hiring:** "Is this candidate a good fit?"
-- **Research:** "Should we pursue this direction?"
-- **Product:** "Will users adopt this feature?"
-
----
-
-## 📈 Performance & Costs
-
-### Cost Breakdown
-
-Based on Claude Sonnet 4 pricing ($3/M input, $15/M output):
-
-| Agents | Input Tokens | Output Tokens | Cost |
-|--------|--------------|---------------|------|
-| 1,000 | ~1,500 | ~500 | $0.007 |
-| 10,000 | ~15,000 | ~5,000 | $0.07 |
-| 100,000 | ~150,000 | ~50,000 | $0.70 |
-| 1,000,000 | ~1,500,000 | ~500,000 | $7.00 |
-
-**Optimize costs:**
-- Use 1k agents for testing/demos
-- Use 10k for daily production
-- Use 100k only for high-stakes decisions
-- Use 1M only when critical accuracy is required
-
-### Accuracy vs Agent Count
-
-Based on NQ futures backtesting:
-
-| Agents | Accuracy | Improvement | Cost/Day |
-|--------|----------|-------------|----------|
-| 1,000 | 52.8% | Baseline | $0.007 |
-| 10,000 | 63.9% | +21% | $0.07 |
-| 100,000 | 65.3% | +2% | $0.70 |
-| 1,000,000 | TBD | Testing | $7.00 |
-
-**Diminishing returns:** 10k agents hits 90% of max accuracy at 10% of 100k cost.
-
----
-
-## 🧠 MiroFish Visualization
-
-Real-time swarm intelligence viewer:
-
-```bash
-# Demo mode (pre-recorded)
-python -m dashboard --mirofish
-
-# Live mode (real API calls)
-python -m dashboard --mirofish --live --question "Your question"
-```
-
-**Features:**
-- Live node network (4 trader types debating)
-- Real-time consensus meter
-- Scrolling debate feed with agent personas
-- Sub-cluster expansion shows vote breakdown
-- Domain-agnostic (YES/NO for any question)
-
-**Deployment:** Works for any domain (trading, marketing, research, etc.)
+### Agents
+
+1. **Alba (Research)** - Gathers relevant data for your question
+2. **David (Swarm)** - Simulates 1k-1M agents debating the decision
+3. **Vex (Audit)** - Checks reasoning for bias and logical errors
+4. **Elira (Orchestrator)** - Synthesizes everything into a final decision
+5. **Steven (Executor)** - Tracks outcomes and learns from results
 
 ---
 
@@ -328,47 +140,276 @@ python -m dashboard --mirofish --live --question "Your question"
 
 AskElira works for any domain requiring validated decisions:
 
-### Trading & Finance
-- Daily market predictions
-- Option contract selection
+### 🎯 Product & Strategy
+```python
+result = Orchestrator(agents=50000).predict(
+    "Should we pivot to B2B from B2C?"
+)
+```
+
+**Questions it can answer:**
+- Feature prioritization
+- Launch timing
+- Pricing strategy
+- Market entry decisions
+
+### 💼 Sales & Business Development
+```python
+result = Orchestrator(agents=10000).predict(
+    "Will this prospect convert to enterprise plan?"
+)
+```
+
+**Questions it can answer:**
+- Lead qualification
+- Deal prioritization
+- Pricing negotiations
+- Partnership evaluation
+
+### 👥 Hiring & HR
+```python
+result = Orchestrator(agents=10000).predict(
+    "Is this candidate a good fit for senior engineer role?"
+)
+```
+
+**Questions it can answer:**
+- Candidate evaluation
+- Offer amounts
+- Team fit assessment
+- Promotion decisions
+
+### 🔬 Research & Development
+```python
+result = Orchestrator(agents=100000).predict(
+    "Should we invest in this research direction?"
+)
+```
+
+**Questions it can answer:**
+- Hypothesis validation
+- Resource allocation
+- Experiment design
+- Technology selection
+
+### 📈 Marketing & Growth
+```python
+result = Orchestrator(agents=50000).predict(
+    "Will this campaign concept go viral?"
+)
+```
+
+**Questions it can answer:**
+- Campaign testing
+- Content strategy
+- Audience targeting
+- Channel selection
+
+### 💰 Finance & Trading
+```python
+result = Orchestrator(agents=100000).predict(
+    "Should we enter this trade?"
+)
+```
+
+**Questions it can answer:**
+- Trade signals
 - Risk assessment
 - Portfolio rebalancing
+- Market timing
 
-### Marketing
-- Campaign concept testing
-- Content strategy validation
-- Audience targeting
-- Viral potential prediction
+---
 
-### Product
-- Feature prioritization
-- User experience decisions
-- Pricing strategy
-- Launch timing
+## 🌟 Real-World Examples
 
-### Research
-- Hypothesis validation
-- Experiment design
-- Resource allocation
-- Direction selection
+### Example 1: Marketing Campaigns
+
+**Repo:** [AskEliraMarketing](https://github.com/AskElira/askeliramarketing)
+
+Test campaign tactics before publishing:
+
+```python
+tactics = ["Technical deep-dive", "Story-driven", "Results-only"]
+
+for tactic in tactics:
+    result = Orchestrator(agents=50000).predict(
+        f"Will this tactic drive engagement: {tactic}?"
+    )
+    print(f"{tactic}: {result.confidence}%")
+```
+
+**Results:** 82% accuracy predicting campaign success, $0.02 per test
+
+### Example 2: Futures Trading
+
+**Repo:** [AskEliraTrader](https://github.com/AskElira/AskEliraTrader)
+
+Daily market predictions:
+
+```python
+result = Orchestrator(agents=100000).predict(
+    "Will NQ close higher today?"
+)
+
+if result.confidence >= 70:
+    execute_trade(result.decision)
+```
+
+**Results:** 65% accuracy, 2.7x profit factor, $0.70 per prediction
+
+---
+
+## 🛠️ Build Your Own
+
+Fork this framework and adapt to ANY domain:
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/AskElira/askelira.git
+cd askelira
+pip install -r requirements.txt
+```
+
+### 2. Customize for Your Domain
+
+```python
+# agents/my_research.py
+def scout_data(question, domain):
+    """Your custom data sources"""
+    if domain == "hiring":
+        return linkedin_api.search(question)
+    elif domain == "sales":
+        return crm_api.get_prospect(question)
+    # ... your domain logic
+```
+
+### 3. Run Predictions
+
+```python
+from askelira import Orchestrator
+
+# Use your custom agents
+result = Orchestrator(
+    agents=10000,
+    research_agent=my_research.scout_data,
+    domain="hiring"
+).predict("Should we hire Jane Doe?")
+```
+
+**Domains we've seen work:**
+- E-commerce (inventory decisions)
+- Real estate (property evaluation)
+- Legal (case strategy)
+- Healthcare (treatment planning)
+- Education (curriculum design)
+
+**If it requires a decision, AskElira can validate it.**
+
+---
+
+## 🎨 Dashboard
+
+Real-time pipeline visualization:
+
+```bash
+# Terminal UI
+python -m dashboard --demo examples/pipeline.json
+
+# Web UI (localhost:8888)
+python -m dashboard --web
+```
+
+**Features:**
+- Live agent network visualization
+- MiroFish sub-cluster expansion
+- Real-time consensus tracking
+- Event log with timestamps
+- WebSocket updates
+
+---
+
+## 📈 Performance
+
+### Cost Breakdown
+
+Based on Claude Sonnet 4 pricing ($3/M input, $15/M output):
+
+| Agents | Avg Tokens | Cost | Time |
+|--------|------------|------|------|
+| 1,000 | ~2,000 | $0.007 | ~10s |
+| 10,000 | ~20,000 | $0.07 | ~20s |
+| 100,000 | ~200,000 | $0.70 | ~30s |
+| 1,000,000 | ~2,000,000 | $7.00 | ~60s |
+
+### When to Use Each Tier
+
+**1,000 agents ($0.007):**
+- Brainstorming ideas
+- Quick validation
+- Demo/testing
+- Low-stakes decisions
+
+**10,000 agents ($0.07):**
+- Daily operations
+- Regular decisions
+- Production use
+- Standard validation
+
+**100,000 agents ($0.70):**
+- Major investments
+- High-stakes choices
+- Important hires
+- Big campaigns
+
+**1,000,000 agents ($7.00):**
+- Company-defining decisions
+- Multi-million dollar bets
+- Critical validations
+- Maximum confidence needed
+
+---
+
+## 🧠 How It Works
+
+### The Swarm Simulation
+
+When you ask a question, David (swarm agent) simulates thousands of diverse perspectives:
+
+**Example: "Should we hire this candidate?"**
+
+The swarm includes:
+- 30% Technical Interviewers (care about skills)
+- 25% Culture Evaluators (care about fit)
+- 20% Hiring Managers (care about impact)
+- 15% Team Members (care about collaboration)
+- 10% HR/Ops (care about logistics)
+
+Each agent:
+1. Reviews the candidate data
+2. Applies their perspective
+3. Debates with other agents
+4. Votes YES or NO
+5. Explains their reasoning
+
+**The consensus emerges from diverse debate, not single AI bias.**
 
 ---
 
 ## 🔧 Configuration
 
-### Environment Variables
+### Environment Setup
 
 ```bash
 # Required
 ANTHROPIC_API_KEY=sk-ant-...
 
-# Optional (for specific agents)
-BRAVE_API_KEY=BSA...  # Alba web search
-PINECONE_API_KEY=...  # Long-term memory
-KALSHI_API_KEY=...    # Prediction markets
+# Optional (for specific use cases)
+BRAVE_API_KEY=...      # Web search
+PINECONE_API_KEY=...   # Long-term memory
 ```
 
-### Agent Configuration
+### Advanced Config
 
 ```python
 from askelira import Orchestrator, Config
@@ -378,7 +419,8 @@ config = Config(
     max_agents=1000000,
     model="claude-sonnet-4-20250514",
     temperature=0.7,
-    timeout_seconds=60
+    timeout=60,
+    enable_memory=True
 )
 
 orch = Orchestrator(config=config)
@@ -388,40 +430,55 @@ orch = Orchestrator(config=config)
 
 ## 🤝 Contributing
 
-Pull requests welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! Areas we need help:
 
-**Areas we need help:**
-- New domain examples (sales, hiring, research)
-- Performance optimizations
-- Dashboard improvements
-- Documentation
+- **New domain examples** (legal, healthcare, education)
+- **Performance optimizations**
+- **Dashboard improvements**
+- **Documentation**
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](LICENSE)
 
 **Built with AskElira Marketing, validated by 50,000-agent swarm.**
-
----
-
-## 🌟 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=jellyforex/askelira&type=Date)](https://star-history.com/#jellyforex/askelira&Date)
 
 ---
 
 ## 🔗 Links
 
 - **Website:** [askelira.com](https://askelira.com)
+- **Documentation:** [docs.askelira.com](https://github.com/AskElira/askelira/wiki)
 - **Twitter:** [@akerremans64961](https://x.com/akerremans64961)
 - **LinkedIn:** [Alvin Kerremans](https://www.linkedin.com/in/alvin-kerremans-925aba150)
 
-**More Examples:**
-- [Trading Bot](https://github.com/jellyforex/AskEliraTrader) - NQ futures predictions
-- [Marketing Swarm](https://github.com/jellyforex/askeliramarketing) - Viral campaign testing
-- [Framework Docs](https://github.com/jellyforex/askelira/wiki) - Full documentation
+**Example Projects:**
+- [Marketing Swarm](https://github.com/AskElira/askeliramarketing) - Viral campaign testing
+- [Trading Bot](https://github.com/AskElira/AskEliraTrader) - Market predictions
+- [Framework](https://github.com/AskElira/askelira) - This repo
+
+---
+
+## ❓ FAQ
+
+**Q: Can I use this for [my domain]?**  
+A: Yes. If it requires a decision, AskElira can validate it.
+
+**Q: How accurate is it?**  
+A: Depends on agent count. Real-world: 65-82% accuracy with 10k-100k agents.
+
+**Q: Is 1M agents worth $7?**  
+A: For mission-critical decisions (7-figure bets, company direction), yes.
+
+**Q: Can I run this offline?**  
+A: No, it requires Claude API. You can cache results for offline review.
+
+**Q: What's the difference from ChatGPT?**  
+A: Single AI = single perspective. AskElira = 1k-1M perspectives debating.
 
 ---
 
