@@ -58,7 +58,7 @@ def check_env() -> bool:
     client = MiroFishClient(mirofish_url)
     if not client.ping():
         log.error(f"MiroFish not reachable at {mirofish_url}")
-        log.error("Start it with: cd /Users/openclawd/Desktop/MiroFish && docker-compose up -d")
+        log.error("Start it with: docker-compose up -d (from your MiroFish directory)")
         return False
     log.info(f"✓ MiroFish reachable at {mirofish_url}")
     return True

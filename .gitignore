@@ -34,3 +34,7 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Pip install artifacts
+=*
+node_modules/

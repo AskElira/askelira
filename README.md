@@ -444,8 +444,6 @@ MIT License - see [LICENSE](LICENSE)
 
 - **Website:** [askelira.com](https://askelira.com)
 - **Documentation:** [Wiki](https://github.com/AskElira/askelira/wiki)
-- **Twitter:** [@akerremans64961](https://x.com/akerremans64961)
-- **LinkedIn:** [Alvin Kerremans](https://www.linkedin.com/in/alvin-kerremans-925aba150)
 
 **Example Projects:**
 - [Marketing Swarm](https://github.com/AskElira/askeliramarketing) - Campaign validation
