@@ -62,7 +62,7 @@ Designs the complete building plan for a customer goal. Given a goal, Elira prod
 
 ## Phase 4: Building Loop Engine
 
-**Status:** LIVE (March 2026)
+**Status:** LIVE (March 2026) -- Hardened by Steven Gamma (50 features)
 
 The loop engine runs each floor through a 5-agent pipeline:
 
@@ -77,16 +77,61 @@ The loop engine runs each floor through a 5-agent pipeline:
 **Auto-chaining:** When a floor goes live, the next pending floor starts automatically via setImmediate.
 When the last floor goes live, the goal is marked 'goal_met'.
 
+### Pipeline Hardening (Steven Gamma)
+
+The building pipeline includes the following hardening features:
+
+- **Request ID tracking** -- every pipeline run gets a unique ID for log correlation
+- **Per-agent retry** -- each agent call retries once after 30s delay on failure
+- **30-minute global timeout** -- pipeline auto-blocks if total execution exceeds 30 minutes
+- **Response validation** -- minimum 50-char response enforced on all agent outputs
+- **Floor dependency enforcement** -- prior floor must be 'live' before next starts
+- **Concurrent floor protection** -- in-memory goal locks prevent parallel floor execution
+- **David model escalation** -- if Vex2 confidence < 60, David retries with Opus model
+- **Build cancellation** -- POST /api/goals/[id]/cancel stops a running pipeline
+- **Slow build detection** -- logs [SLOW] warning when David step exceeds 60 seconds
+- **Quality scoring** -- Elira adds explicit quality score in review step
+- **Error classification** -- errors categorized as network/timeout/parse/auth/rate_limit/unknown
+- **Structured build summary** -- Telegram notification with cost, time, search counts after finalize
+
+### Search Hardening (Steven Gamma)
+
+- **URL deduplication** -- removes duplicate search results by normalized URL
+- **Relevance scoring** -- keyword overlap scoring, highest relevance first
+- **Stale result flagging** -- results older than 90 days marked [STALE]
+- **In-memory cache** -- 1-hour TTL search cache to avoid duplicate queries
+- **Minimum result enforcement** -- supplements with alt provider if < 3 results returned
+- **Query expansion** -- retries with alternative phrasings when 0 results
+- **Confidence score** -- Alba outputs confidence 0-100 in JSON schema
+- **Source URLs** -- David instructed to include source URLs in code comments
+
+### Gateway Hardening (Steven Gamma)
+
+- **Per-agent timeouts** -- Alba 180s, David 300s, Vex 120s, Elira 180s, Steven 120s
+- **Request deduplication** -- 5-second window prevents duplicate gateway calls
+- **Latency monitoring** -- rolling average of last 10 requests, alerts at > 10s
+- **Stale session cleanup** -- `cleanupStaleSessions()` removes orphaned connections
+- **Gateway health endpoint** -- `/api/health` returns gateway status, latency, circuit breaker state
+
 **Core file:** `lib/building-loop.ts`
 - `runFloor(floorId)` -- runs the full loop, returns 'live' or 'blocked'
 - `getFloorForHeartbeat(floorId)` -- thin DB wrapper for Phase 5
 
+**Pipeline state tracker:** `lib/pipeline-state.ts`
+- `startPipelineRun(goalId)` -- initialize tracking for a pipeline execution
+- `getPipelineRun(goalId)` -- retrieve current state (agent, elapsed, tokens, searches)
+- `cancelPipelineRun(goalId)` -- flag pipeline for cancellation
+- `acquireGoalLock(goalId)` / `releaseGoalLock(goalId)` -- concurrency control
+
+**Error classifier:** `lib/error-classifier.ts`
+- `classifyError(err)` -- returns category: network, timeout, parse, auth, rate_limit, unknown
+
 **New agent prompts** (in `lib/agent-prompts.ts`):
-- `ALBA_RESEARCH_PROMPT` -- research with tools, JSON output
+- `ALBA_RESEARCH_PROMPT` -- research with tools, JSON output, confidence score, proven patterns
 - `VEX_GATE1_PROMPT` -- pre-build audit, JSON output
-- `DAVID_BUILD_PROMPT` -- build with self-audit, JSON output
+- `DAVID_BUILD_PROMPT` -- build with self-audit, JSON output, source URLs
 - `VEX_GATE2_PROMPT` -- post-build audit, JSON output
-- `ELIRA_FLOOR_REVIEW_PROMPT` -- strategic review, JSON output
+- `ELIRA_FLOOR_REVIEW_PROMPT` -- strategic review, quality score, JSON output
 
 **New DB functions** (in `lib/building-manager.ts`):
 - `getFloor(floorId)` -- single floor by ID
@@ -96,6 +141,11 @@ When the last floor goes live, the goal is marked 'goal_met'.
 **API routes:**
 - `POST /api/loop/start/[floorId]` -- fire-and-forget loop start (checks pending/researching)
 - `POST /api/goals/[id]/approve` -- now auto-fires loop for Floor 1
+- `GET /api/goals/[id]/progress` -- real-time pipeline progress (agent, elapsed, tokens)
+- `POST /api/goals/[id]/cancel` -- cancel running pipeline
+- `GET /api/goals/[id]/timeline` -- chronological agent action timeline
+- `GET /api/goals/[id]/compare/[id2]` -- side-by-side build comparison
+- `GET /api/cron/daily-stats` -- daily build stats (Vercel cron)
 
 **Test script:** `npx tsx scripts/test-building-loop.ts` (requires `TEST_GOAL_ID` env var)
 

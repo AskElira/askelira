@@ -19,10 +19,72 @@ import { runPhaseZero, quickValidation } from '../lib/phase-zero';
 import { getApiKey, getEmail, getLLMApiKey } from '../lib/auth';
 
 /**
+ * Feature 45: Run a single agent in isolation with user-provided prompt.
+ */
+async function runSingleAgent(agentName: string, prompt: string): Promise<void> {
+  console.log('');
+  console.log(chalk.bold(`  Running agent: ${agentName}`));
+  console.log(chalk.gray(`  Prompt: ${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}`));
+  console.log('');
+
+  const llmApiKey = getLLMApiKey();
+  if (!llmApiKey) {
+    console.log(chalk.red('  Anthropic API key not configured. Run `askelira init`.'));
+    process.exitCode = 1;
+    return;
+  }
+
+  const spinner = ora(`Calling ${agentName}...`).start();
+
+  try {
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic({ apiKey: llmApiKey });
+
+    const { ALBA_RESEARCH_PROMPT, DAVID_BUILD_PROMPT, VEX_GATE1_PROMPT, VEX_GATE2_PROMPT, ELIRA_FLOOR_REVIEW_PROMPT } = await import('../../lib/agent-prompts');
+
+    const prompts: Record<string, string> = {
+      alba: ALBA_RESEARCH_PROMPT,
+      david: DAVID_BUILD_PROMPT,
+      vex1: VEX_GATE1_PROMPT,
+      vex2: VEX_GATE2_PROMPT,
+      elira: ELIRA_FLOOR_REVIEW_PROMPT,
+    };
+
+    const systemPrompt = prompts[agentName.toLowerCase()] || `You are ${agentName}, an AI agent. Respond helpfully.`;
+
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    spinner.stop();
+    const text = response.content[0].type === 'text' ? response.content[0].text : '(no text response)';
+    console.log(chalk.green(`  ${agentName} response:\n`));
+    console.log(text);
+    console.log('');
+  } catch (err: unknown) {
+    spinner.fail(chalk.red(`${agentName} call failed`));
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    console.log(chalk.red(`  ${msg}`));
+    process.exitCode = 1;
+  }
+}
+
+/**
  * Main build command handler.
  * Accepts optional goal text as positional arg.
+ * Feature 44: --dry-run runs only Floor 0 design, then exits.
+ * Feature 45: --agent runs a single agent in isolation.
  */
-export async function buildCommand(goalText?: string): Promise<void> {
+export async function buildCommand(goalText?: string, options?: { dryRun?: boolean; agent?: string }): Promise<void> {
+  // Feature 45: Single agent mode
+  if (options?.agent) {
+    const prompt = goalText || 'Hello, what can you do?';
+    await runSingleAgent(options.agent, prompt);
+    return;
+  }
   console.log('');
   console.log(chalk.bold('  AskElira Build Wizard'));
   console.log(chalk.gray('  Create a new automation from scratch'));
@@ -254,6 +316,15 @@ export async function buildCommand(goalText?: string): Promise<void> {
 
   console.log(boxBottom(width));
   console.log('');
+
+  // Feature 44: Dry run exits after showing the plan
+  if (options?.dryRun) {
+    console.log(chalk.green('  [DRY RUN] Blueprint displayed. No build started.'));
+    console.log(chalk.gray(`  Goal ID: ${goalId}`));
+    console.log(chalk.gray(`  To approve and build: askelira status ${goalId}`));
+    console.log('');
+    return;
+  }
 
   // ── Step 7: Confirm approve ──────────────────────────────
   const { approve } = await inquirer.prompt([

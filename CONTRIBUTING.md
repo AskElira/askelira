@@ -8,6 +8,7 @@ Thanks for your interest in contributing to AskElira! Whether you're fixing a bu
 
 - Node.js >= 18
 - Git
+- PostgreSQL (or Vercel Postgres for cloud)
 
 ### Setup
 
@@ -16,161 +17,126 @@ Thanks for your interest in contributing to AskElira! Whether you're fixing a bu
 git clone https://github.com/askelira/askelira.git
 cd askelira
 
-# Install dependencies
-npm install
+# Install dependencies (--legacy-peer-deps required for react 18 / drei peer conflict)
+npm install --legacy-peer-deps
 
 # Copy the environment template
-cp .env.template ~/.askelira/.env
+cp .env.example .env.local
 
-# (Optional) Add your Brave Search API key for Alba research
-# Edit ~/.askelira/.env and set BRAVE_API_KEY=your_key_here
+# Run database migrations
+npm run db:migrate
+
+# Start the dev server
+npm run dev
 ```
 
 ### Verify your setup
 
 ```bash
-# Run unit tests
-node test/swarm.test.js
+# TypeScript compilation (must be 0 errors)
+npx tsc --noEmit
 
-# Run integration tests
-node test/integration.test.js
+# Run the smoke test
+npm run smoke
 
-# Try a quick swarm (100 agents, cheap)
-node examples/basic.js
+# Production build check
+npm run build
 ```
 
 ## Architecture
 
-AskElira uses a 4-phase pipeline. Every question flows through these agents in order:
+AskElira 2.1 uses a 5-agent building pipeline. Each floor in a building flows through these agents:
 
 ```
-Question
-  │
-  ▼
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│   Alba   │────▶│  David   │────▶│   Vex    │────▶│  Elira   │
-│ Research │     │  Debate  │     │  Audit   │     │Synthesis │
-└──────────┘     └──────────┘     └──────────┘     └──────────┘
-  │                │                │                │
-  │ Brave API      │ MiroFish       │ Validation     │ Decision
-  │ Sources        │ Clusters       │ Issues         │ Confidence
-  │ Context        │ Votes          │ Adjustments    │ Verdict
-  ▼                ▼                ▼                ▼
-                                                  Result
+Goal
+  |
+  v
++--------+     +---------+     +--------+     +---------+     +--------+
+|  Alba  |---->| Vex G1  |---->| David  |---->| Vex G2  |---->| Elira  |
+|Research|     |Pre-Audit |     | Build  |     |Post-Aud |     | Review |
++--------+     +---------+     +--------+     +---------+     +--------+
+  |               |                |               |               |
+  | Brave+Tavily  | JSON audit     | Opus model    | Quality gate  | Strategic
+  | URL fetcher   | Go/No-Go       | Code output   | Score 0-100   | alignment
+  | Confidence    |                | Source URLs   |               | Live/Block
+  v               v                v               v               v
+                                                                Floor Live
+                                                                   |
+                                                                   v
+                                                          Steven (Heartbeat)
+                                                          Health monitoring
 ```
+
+### Key directories
+
+| Directory | Purpose |
+|-----------|---------|
+| `lib/` | Core business logic (agents, DB, search, billing) |
+| `app/api/` | Next.js API routes |
+| `app/` | Next.js pages and layout |
+| `components/` | React components (inline styles, no Tailwind) |
+| `hooks/` | React hooks (useBuilding, etc.) |
+| `cli/` | Standalone CLI package |
+| `scripts/` | Migrations, seeds, tests |
 
 ### Key files
 
 | File | Purpose |
 |------|---------|
-| `bin/cli.js` | CLI entry point, command routing |
-| `src/agents/swarm.js` | Orchestrates the 4-phase pipeline |
-| `src/agents/alba.js` | Research via Brave Search API |
-| `src/agents/david.js` | Swarm debate via MiroFish gateway |
-| `src/agents/vex.js` | Debate validation and auditing |
-| `src/agents/elira.js` | Final synthesis and verdict |
-| `src/memory/index.js` | Hybrid storage (files + ChromaDB) |
-| `src/gateway/index.js` | OpenClaw gateway wrapper |
-| `src/utils/cost-calculator.js` | API cost tracking |
-| `src/utils/logger.js` | Logging with file output |
-
-## Adding a New Agent
-
-Agents are simple classes with a single async method. Here's the pattern:
-
-```javascript
-// src/agents/my-agent.js
-
-class MyAgent {
-  constructor() {
-    this.name = 'MyAgent';
-    this.role = 'Description of what it does';
-  }
-
-  async run(question, context) {
-    // Your logic here
-    return {
-      result: 'your output',
-      cost: 0,
-    };
-  }
-}
-
-module.exports = { MyAgent };
-```
-
-### Agent contract
-
-Every agent method must return an object with at least:
-- A `cost` field (number, in USD)
-- Relevant output data for downstream agents
-
-### Wiring it into the pipeline
-
-1. Create your agent in `src/agents/`
-2. Import it in `src/agents/swarm.js`
-3. Add a phase call in `Swarm.debate()` using `_runPhase()` for error handling
-4. Define a fallback object for graceful degradation
-5. Add tests in `test/`
-
-## Testing
-
-### Running tests
-
-```bash
-# Unit tests
-node test/swarm.test.js
-
-# Integration tests (runs all 4 phases)
-node test/integration.test.js
-```
-
-### Writing tests
-
-We use Node's built-in `assert` module. No framework required.
-
-```javascript
-const assert = require('assert');
-
-async function testMyFeature() {
-  const result = await myFunction();
-  assert.ok(result, 'Result should exist');
-  assert.strictEqual(typeof result.value, 'string');
-  console.log('PASS: my feature');
-}
-```
-
-### Test guidelines
-
-- Every new agent needs at least one test
-- Test both success and failure paths
-- Use 100 agents for test swarms (cheap and fast)
-- Integration tests should use `withTimeout()` to prevent hangs
-- Tests should be runnable without API keys (agents degrade gracefully)
+| `lib/step-runner.ts` | Orchestrates the 5-agent pipeline per floor |
+| `lib/building-loop.ts` | Manages floor iteration and auto-chaining |
+| `lib/heartbeat.ts` | Steven's health monitoring runtime |
+| `lib/pipeline-state.ts` | Shared state tracking (request IDs, locks, tokens) |
+| `lib/agent-router.ts` | Routes agent calls (Gateway vs Direct) |
+| `lib/web-search.ts` | Multi-provider search (Tavily, Brave, Perplexity) |
+| `lib/building-manager.ts` | All database operations |
+| `lib/agent-prompts.ts` | Agent system prompts |
+| `lib/error-classifier.ts` | Error categorization |
+| `lib/subscription-manager.ts` | Stripe billing operations |
 
 ## Code Style
 
 ### General rules
 
-- CommonJS (`require`/`module.exports`) — no ESM
-- Single quotes for strings
+- TypeScript with strict mode
 - 2-space indentation
+- Single quotes for strings
 - Semicolons required
 - `const` by default, `let` when reassignment is needed, never `var`
 
 ### Naming
 
-- Files: `kebab-case.js`
-- Classes: `PascalCase`
+- Files: `kebab-case.ts`
+- Classes/Interfaces: `PascalCase`
 - Functions/variables: `camelCase`
 - Constants: `UPPER_SNAKE_CASE`
+- DB columns: `snake_case`
 
 ### Patterns
 
-- Agents are classes with async methods
-- CLI commands are exported async functions
-- Errors are handled with try/catch, never swallowed silently
-- Cost is tracked on every external API call
+- React components use **inline styles only** (no Tailwind, no styled-jsx)
+- CSS custom properties defined in `app/globals.css` (--accent, --surface, --panel, etc.)
+- Database: `@vercel/postgres` with `sql` tagged template literals
+- Dynamic imports for DB calls in API routes (fallback for local dev without DB)
+- Agents return JSON; all prompts specify output schema
+- All API routes use `NextRequest`/`NextResponse`
+- Error handling: try/catch everywhere, never swallow silently (at minimum console.error)
+- Agent calls should never crash the pipeline -- always fallback gracefully
+
+### Agent conventions
+
+- Alba, Vex1, Vex2, Elira use `claude-sonnet-4-5`
+- David uses `claude-opus-4-5` (can be escalated from Sonnet when Vex2 score < 60)
+- Steven uses `claude-sonnet-4-5` (never Opus)
+- All agent outputs must be valid JSON matching the schema in `lib/agent-prompts.ts`
+
+## Adding a New Agent
+
+1. Add the system prompt to `lib/agent-prompts.ts`
+2. Add the step function to `lib/step-runner.ts` following the existing pattern
+3. Wire it into the pipeline in `lib/building-loop.ts`
+4. Add error classification patterns to `lib/error-classifier.ts` if needed
+5. Update `AGENTS.md` with the new agent's documentation
 
 ## Pull Request Process
 
@@ -184,31 +150,26 @@ async function testMyFeature() {
 
 ```
 feature/add-new-agent
-fix/swarm-timeout-bug
-docs/update-readme
+fix/pipeline-timeout-bug
+docs/update-agents-md
 ```
-
-### Making your PR
-
-1. Make your changes on a feature branch
-2. Run all tests and make sure they pass
-3. Add tests for new functionality
-4. Keep commits focused — one logical change per commit
-5. Write a clear PR description explaining what and why
 
 ### PR checklist
 
-- [ ] Tests pass (`node test/swarm.test.js && node test/integration.test.js`)
-- [ ] New features have tests
-- [ ] No `console.log` debugging left in code (use `logger` instead)
-- [ ] Cost tracking added for any new external API calls
-- [ ] Fallback defined in `swarm.js` if adding a new pipeline phase
+- [ ] `npx tsc --noEmit` passes with 0 errors
+- [ ] `npm run build` passes
+- [ ] New features have corresponding documentation in AGENTS.md
+- [ ] No `console.log` debugging left (use descriptive log prefixes like `[Heartbeat]`, `[Pipeline]`)
+- [ ] No hardcoded API keys or secrets
+- [ ] Agent prompts include output schema
+- [ ] Database changes have idempotent migration in `scripts/`
+- [ ] Error handling follows try/catch pattern (never crash the pipeline)
 
 ### Review
 
 - PRs need one approving review before merge
-- Maintainers may suggest changes — this is collaborative, not adversarial
 - We aim to review PRs within 48 hours
+- Keep commits focused -- one logical change per commit
 
 ## Questions?
 

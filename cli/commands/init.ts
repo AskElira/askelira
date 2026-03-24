@@ -177,6 +177,78 @@ export async function initCommand(): Promise<void> {
     telegramChatId = tgAnswers.chatId.trim();
   }
 
+  // ── Feature 41: Validate collected API keys ─────────────────
+  console.log('');
+  console.log(chalk.gray('  Validating API keys...'));
+
+  const validationResults: Array<{ name: string; ok: boolean; detail: string }> = [];
+
+  // Test Anthropic key
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicKey.trim(),
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'hi' }],
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    validationResults.push({ name: 'Anthropic', ok: res.ok || res.status === 400, detail: res.ok ? 'valid' : `status ${res.status}` });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    validationResults.push({ name: 'Anthropic', ok: false, detail: msg });
+  }
+
+  // Test Tavily key
+  if (tavilyKey) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: tavilyKey, query: 'test', max_results: 1 }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      validationResults.push({ name: 'Tavily', ok: res.ok, detail: res.ok ? 'valid' : `status ${res.status}` });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'unknown';
+      validationResults.push({ name: 'Tavily', ok: false, detail: msg });
+    }
+  }
+
+  // Test Telegram bot
+  if (wantTelegram && telegramBotToken) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(`https://api.telegram.org/bot${telegramBotToken}/getMe`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json() as any;
+      validationResults.push({ name: 'Telegram', ok: data.ok === true, detail: data.ok ? `@${data.result?.username}` : 'invalid token' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'unknown';
+      validationResults.push({ name: 'Telegram', ok: false, detail: msg });
+    }
+  }
+
+  for (const v of validationResults) {
+    const icon = v.ok ? chalk.green('\u2713') : chalk.red('\u2717');
+    console.log(`  ${icon} ${v.name}: ${v.detail}`);
+  }
+
   // ── Write USER.md ───────────────────────────────────────────
   fs.mkdirSync(WORKSPACE_DIR, { recursive: true });
 
