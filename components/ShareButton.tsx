@@ -5,10 +5,22 @@ import { useState } from 'react';
 export default function ShareButton({ id }: { id: string }) {
   const [copied, setCopied] = useState(false);
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/results/${id}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/results/${id}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: select text from a temporary input
+      const input = document.createElement('input');
+      input.value = `${window.location.origin}/results/${id}`;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (

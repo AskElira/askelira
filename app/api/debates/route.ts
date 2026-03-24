@@ -5,15 +5,15 @@ import { authOptions } from '@/lib/auth';
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const emailParam = req.nextUrl.searchParams.get('email');
-    const email = session?.user?.email || emailParam;
 
-    if (!email) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 },
       );
     }
+
+    const email = session.user.email;
 
     // Try DB, fall back to empty array for local dev
     try {

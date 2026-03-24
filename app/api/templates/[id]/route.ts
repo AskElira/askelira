@@ -24,6 +24,14 @@ export async function GET(
       );
     }
 
+    // Only serve public templates to unauthenticated or non-owner requests
+    if (!template.isPublic) {
+      return NextResponse.json(
+        { error: 'Template not found' },
+        { status: 404 },
+      );
+    }
+
     return NextResponse.json({
       id: template.id,
       goalText: template.goalText,
@@ -33,7 +41,6 @@ export async function GET(
       useCount: template.useCount,
       avgCompletionHours: template.avgCompletionHours,
       isPublic: template.isPublic,
-      sourceGoalId: template.sourceGoalId,
       createdAt: template.createdAt.toISOString(),
     });
   } catch (err: unknown) {
