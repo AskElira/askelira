@@ -813,6 +813,14 @@ const STALL_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 const STALL_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes between restart attempts per floor
 const stallRecoveryTimestamps = new Map<string, number>();
 
+// Periodically clean up stale recovery timestamps (older than 1 hour)
+setInterval(() => {
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  for (const [key, ts] of stallRecoveryTimestamps) {
+    if (ts < cutoff) stallRecoveryTimestamps.delete(key);
+  }
+}, 15 * 60 * 1000).unref();
+
 /**
  * Check for floors stuck in researching/building/auditing with no recent
  * agent activity. Floors in these statuses should have continuous agent

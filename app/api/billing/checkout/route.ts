@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
         | undefined;
 
     // Build Stripe checkout session
-    const origin =
-      request.headers.get('origin') ?? process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
+    // Use NEXTAUTH_URL as the canonical origin (never trust Origin header for redirects)
+    const origin = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',

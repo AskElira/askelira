@@ -6,15 +6,15 @@ import { getTierForEmail } from '@/lib/tiers';
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const emailParam = req.nextUrl.searchParams.get('email');
-    const email = session?.user?.email || emailParam;
 
-    if (!email) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 },
       );
     }
+
+    const email = session.user.email;
 
     // Try DB, fall back to mock for local dev
     let plan = 'free';

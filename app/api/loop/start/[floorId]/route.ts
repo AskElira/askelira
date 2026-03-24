@@ -22,6 +22,15 @@ export async function POST(
       );
     }
 
+    // Auth: require CRON_SECRET for internal calls (if configured)
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret) {
+      const provided = _req.headers.get('x-cron-secret');
+      if (provided !== cronSecret) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    }
+
     // Rate limit: 10/hour per floorId (raised from 3 to allow stall recovery restarts)
     const rateCheck = checkRateLimit(`loop_start:${floorId}`, 10, 3600000);
     if (!rateCheck.allowed) {

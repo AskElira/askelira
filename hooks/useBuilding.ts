@@ -167,7 +167,8 @@ export function useBuildingState(goalId: string) {
   // Fetch heartbeat status (separate endpoint, not included in goals API)
   useEffect(() => {
     if (!goalId) return;
-    fetch(`/api/heartbeat/${goalId}`)
+    const controller = new AbortController();
+    fetch(`/api/heartbeat/${goalId}`, { signal: controller.signal })
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (!data?.status) return;
@@ -180,7 +181,8 @@ export function useBuildingState(goalId: string) {
           };
         });
       })
-      .catch(() => { /* best-effort */ });
+      .catch(() => { /* best-effort / aborted */ });
+    return () => controller.abort();
   }, [goalId]);
 
   // Socket.io real-time updates

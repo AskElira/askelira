@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limiter';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export const maxDuration = 60; // Elira planning calls can take 30-60s
 
@@ -8,6 +10,11 @@ export async function POST(
   { params }: { params: { id: string } },
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const goalId = params.id;
 
     if (!goalId) {
@@ -71,7 +78,6 @@ export async function POST(
       }
 
       // Phase 10: Check templates before calling designBuilding
-      let templateUsed = false;
       try {
         const { detectCategory } = await import('@/lib/pattern-manager');
         const category = detectCategory(goal.goalText, '', '');
@@ -91,7 +97,6 @@ export async function POST(
             }
             await updateGoalSummary(goal.id, template.buildingSummary);
             await incrementTemplateUseCount(template.id);
-            templateUsed = true;
 
             return NextResponse.json({
               goalId: goal.id,

@@ -52,6 +52,14 @@ export async function POST(
         throw err;
       }
 
+      // Verify ownership
+      if (goal.customerId !== session.user.email) {
+        return NextResponse.json(
+          { error: 'You do not own this goal' },
+          { status: 403 },
+        );
+      }
+
       // Must be in 'planning' status
       if (goal.status !== 'planning') {
         return NextResponse.json(

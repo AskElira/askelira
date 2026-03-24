@@ -71,6 +71,10 @@ interface AlbaResult {
   risks: string[];
   sources: string[];
   complexity: number;
+  patternValidation?: { passed: boolean; confidence: number; category?: string };
+  riskAnalysis?: { passed: boolean; totalRiskScore: number };
+  swarmValidation?: { passed: boolean; confidence: number };
+  researchMetadata?: { userPreferences?: unknown };
 }
 
 interface VexGate1Result {
@@ -875,10 +879,10 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
   console.log(`[David] Generating prediction prompt with validation results...`);
 
   // Extract validation results from enhanced Alba result
-  const patternValidation = (albaResult as any).patternValidation;
-  const riskAnalysis = (albaResult as any).riskAnalysis;
-  const swarmValidation = (albaResult as any).swarmValidation;
-  const personalContext = (albaResult as any).researchMetadata?.userPreferences;
+  const patternValidation = albaResult.patternValidation;
+  const riskAnalysis = albaResult.riskAnalysis;
+  const swarmValidation = albaResult.swarmValidation;
+  const personalContext = albaResult.researchMetadata?.userPreferences;
 
   const predictionPrompt = generatePredictionPrompt({
     floorName: floor.name,

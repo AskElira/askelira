@@ -38,9 +38,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Auth check (allow anonymous testing with demo account)
+    // Auth check
     const session = await getServerSession(authOptions);
-    const email = session?.user?.email || 'demo@askelira.com';
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const email = session.user.email;
 
     // Tier + build limit check
     const usage = await getUserBuildData(email);
