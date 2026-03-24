@@ -29,6 +29,8 @@
     "deploy": "vercel --prod",
     "db:migrate": "node scripts/migrate-all.mjs",
     "db:validate": "node scripts/validate-schema.mjs",
+    "security:audit": "npm audit --production",
+    "security:scan": "node scripts/scan-secrets.mjs",
     "smoke": "npx tsx scripts/smoke-test.ts",
     "scraper:test": "npx tsx scripts/test-scraper.ts"
   },
