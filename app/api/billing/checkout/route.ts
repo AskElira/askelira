@@ -42,9 +42,16 @@ export async function POST(request: NextRequest) {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       if (message.includes('not found')) {
-        return NextResponse.json({ error: message }, { status: 404 });
+        return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
       }
       throw err;
+    }
+
+    // [BUG-5-06] Verify goal ownership. Without this check, any authenticated
+    // user can create a checkout session for another user's goal, potentially
+    // manipulating their subscription or charging them.
+    if (goal.customerId !== authSession.user.email) {
+      return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
     }
 
     // Create subscription record if one doesn't exist

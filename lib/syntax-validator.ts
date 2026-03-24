@@ -9,7 +9,7 @@
  * Always cleans up the temp directory, even on error.
  */
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -87,9 +87,14 @@ export async function validateSyntax(
   };
 }
 
+// [BUG-5-04] Use execFileSync instead of execSync to prevent command injection.
+// David-generated file.name values are written to tmpDir and then passed to shell
+// commands. A malicious file.name like `"; rm -rf / #.js` would cause RCE with
+// execSync (string interpolation into shell), but execFileSync passes arguments
+// as an array, bypassing shell interpretation entirely.
 function checkWithNode(filePath: string): { valid: boolean; error?: string } {
   try {
-    execSync(`node --check "${filePath}"`, {
+    execFileSync('node', ['--check', filePath], {
       stdio: 'pipe',
       timeout: 10000,
     });
@@ -109,7 +114,8 @@ function checkWithNode(filePath: string): { valid: boolean; error?: string } {
 
 function checkWithPython(filePath: string): { valid: boolean; error?: string } {
   try {
-    execSync(`python3 -m py_compile "${filePath}"`, {
+    // [BUG-5-04] execFileSync prevents command injection via filePath
+    execFileSync('python3', ['-m', 'py_compile', filePath], {
       stdio: 'pipe',
       timeout: 10000,
     });
@@ -128,8 +134,8 @@ function checkWithPython(filePath: string): { valid: boolean; error?: string } {
 
 function checkWithTsc(filePath: string): { valid: boolean; error?: string } {
   try {
-    // Check if tsc is available
-    execSync('tsc --version', { stdio: 'pipe', timeout: 5000 });
+    // [BUG-5-04] execFileSync prevents command injection via filePath
+    execFileSync('tsc', ['--version'], { stdio: 'pipe', timeout: 5000 });
   } catch {
     // tsc not available — skip TypeScript check (not a hard requirement)
     console.warn('[SyntaxValidator] tsc not found — skipping TypeScript syntax check');
@@ -137,7 +143,7 @@ function checkWithTsc(filePath: string): { valid: boolean; error?: string } {
   }
 
   try {
-    execSync(`tsc --noEmit --allowJs --esModuleInterop --skipLibCheck "${filePath}"`, {
+    execFileSync('tsc', ['--noEmit', '--allowJs', '--esModuleInterop', '--skipLibCheck', filePath], {
       stdio: 'pipe',
       timeout: 15000,
     });

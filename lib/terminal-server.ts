@@ -60,6 +60,17 @@ export function isPtyAvailable(): boolean {
 
 const activeSessions = new Map<string, IPty>();
 
+// [BUG-5-10] Track sessions per customer to prevent resource exhaustion
+const MAX_SESSIONS_PER_CUSTOMER = 3;
+const customerSessionCounts = new Map<string, number>();
+
+// [BUG-5-01] Allowlist of safe env vars for customer PTY shells.
+// NEVER pass secrets (API keys, DB URLs, webhook secrets) to customer shells.
+const SAFE_ENV_VARS = new Set([
+  'PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'SHELL', 'USER', 'LOGNAME',
+  'TMPDIR', 'TMP', 'TEMP',
+]);
+
 /**
  * Kill all active PTY sessions. Called on server shutdown.
  */
@@ -105,6 +116,17 @@ export function registerTerminalHandlers(io: SocketServer): void {
 
     console.log(`[TerminalServer] Connection from customer ${customerId} (socket ${socket.id})`);
 
+    // [BUG-5-10] Enforce per-customer session limit
+    const currentCount = customerSessionCounts.get(customerId) ?? 0;
+    if (currentCount >= MAX_SESSIONS_PER_CUSTOMER) {
+      socket.emit('terminal.error', {
+        message: `Too many active terminal sessions (max ${MAX_SESSIONS_PER_CUSTOMER}). Close an existing session first.`,
+      });
+      socket.disconnect(true);
+      return;
+    }
+    customerSessionCounts.set(customerId, currentCount + 1);
+
     // Check PTY availability
     if (!nodePty || !ptyAvailable) {
       socket.emit('terminal.error', {
@@ -136,9 +158,13 @@ export function registerTerminalHandlers(io: SocketServer): void {
         rows: 24,
         cwd: workspacePath,
         env: {
+          // [BUG-5-01] Only pass safe env vars to customer shell.
+          // Previously spread ALL of process.env, leaking ANTHROPIC_API_KEY,
+          // STRIPE_SECRET_KEY, POSTGRES_URL, etc. to customer-controlled shell.
           ...Object.fromEntries(
             Object.entries(process.env).filter(
-              (entry): entry is [string, string] => entry[1] !== undefined,
+              (entry): entry is [string, string] =>
+                entry[1] !== undefined && SAFE_ENV_VARS.has(entry[0]),
             ),
           ),
           HOME: workspacePath,
@@ -207,6 +233,13 @@ export function registerTerminalHandlers(io: SocketServer): void {
         // already dead
       }
       activeSessions.delete(socket.id);
+      // [BUG-5-10] Decrement customer session count
+      const count = customerSessionCounts.get(customerId) ?? 1;
+      if (count <= 1) {
+        customerSessionCounts.delete(customerId);
+      } else {
+        customerSessionCounts.set(customerId, count - 1);
+      }
     });
   });
 }

@@ -462,7 +462,10 @@ function generateCombinedReport(
   parts.push(`# Swarm Intelligence Validation Report`);
   parts.push(``);
   parts.push(`**Floor**: ${floorName}`);
-  parts.push(`**Unified Confidence**: ${(confidence ?? 0 * 100).toFixed(1)}%`);
+  // [BUG-5-02] Fix operator precedence: was `confidence ?? 0 * 100` which
+  // evaluates as `confidence ?? (0 * 100)` = `confidence ?? 0`, always showing
+  // the raw 0-1 value instead of a percentage. Must parenthesize correctly.
+  parts.push(`**Unified Confidence**: ${((confidence ?? 0) * 100).toFixed(1)}%`);
   parts.push(`**Final Decision**: ${decision?.toUpperCase() || 'UNKNOWN'} ${decision === 'approve' ? '✅' : decision === 'reject' ? '❌' : '⚠️'}`);
   parts.push(``);
   parts.push(`## Reasoning`);

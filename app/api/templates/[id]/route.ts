@@ -44,8 +44,12 @@ export async function GET(
       createdAt: template.createdAt.toISOString(),
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to fetch template';
-    console.error('[API /templates/[id]]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    // [BUG-5-05] Never expose internal error details in API responses
+    const internalMsg = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[API /templates/[id]]', internalMsg);
+    return NextResponse.json(
+      { error: 'Failed to fetch template' },
+      { status: 500 },
+    );
   }
 }

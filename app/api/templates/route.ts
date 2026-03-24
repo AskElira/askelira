@@ -18,8 +18,14 @@ export async function GET() {
       })),
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to fetch templates';
-    console.error('[API /templates]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    // [BUG-5-05] Never expose internal error details (DB connection strings,
+    // stack traces, etc.) in API responses. Log the real error server-side,
+    // return a generic message to the client.
+    const internalMsg = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[API /templates]', internalMsg);
+    return NextResponse.json(
+      { error: 'Failed to fetch templates' },
+      { status: 500 },
+    );
   }
 }

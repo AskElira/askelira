@@ -48,7 +48,16 @@ export function validateEnvironment(): ValidationResult {
     }
   }
 
-  // Log results
+  // [BUG-5-08] Log ALL diagnostic info BEFORE throwing.
+  // Previously, the throw for missing required vars happened before the
+  // recommended vars warning was logged, so operators only saw the required
+  // error and missed which recommended vars were also absent.
+  if (warnings.length > 0) {
+    console.warn(
+      `[EnvValidator] Missing recommended vars: ${warnings.join(', ')} -- some features will be disabled`,
+    );
+  }
+
   if (missing.length > 0) {
     const msg = `[EnvValidator] Missing required vars: ${missing.join(', ')}`;
     if (isProduction) {
@@ -57,12 +66,6 @@ export function validateEnvironment(): ValidationResult {
     } else {
       console.warn(`${msg} (dev mode -- continuing with warnings)`);
     }
-  }
-
-  if (warnings.length > 0) {
-    console.warn(
-      `[EnvValidator] Missing recommended vars: ${warnings.join(', ')} -- some features will be disabled`,
-    );
   }
 
   if (missing.length === 0 && warnings.length === 0) {
