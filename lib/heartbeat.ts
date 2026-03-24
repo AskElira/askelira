@@ -94,6 +94,10 @@ interface HeartbeatEntry {
 
 const heartbeatRegistry = new Map<string, HeartbeatEntry>();
 
+// SD-009: DB backup reminder — notify every 24 hours
+let lastBackupReminder = 0;
+const BACKUP_REMINDER_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
 // ============================================================
 // Event emitter (same pattern as building-loop.ts)
 // ============================================================
@@ -468,6 +472,13 @@ async function runHeartbeatCycle(goalId: string): Promise<void> {
     if (!entry) {
       console.log(`[Heartbeat] Goal ${goalId} no longer in registry, skipping`);
       return;
+    }
+
+    // SD-009: Periodic DB backup reminder
+    const now = Date.now();
+    if (now - lastBackupReminder > BACKUP_REMINDER_INTERVAL_MS) {
+      lastBackupReminder = now;
+      notify('🗄️ *DB Backup Reminder*: Verify that Vercel Postgres automated backups are enabled and recent. Check dashboard → Storage → Backups.').catch(() => {});
     }
 
     // Phase 9: Billing gate — check subscription status before proceeding
@@ -909,6 +920,103 @@ async function checkStalledFloors(goalId: string): Promise<void> {
       );
       // Continue to next floor — never crash the cycle
     }
+  }
+}
+
+// ============================================================
+// Feature 33: Steven weekly digest (called externally or by cron)
+// ============================================================
+
+export async function sendWeeklyDigest(): Promise<void> {
+  try {
+    const { sql } = await import('@vercel/postgres');
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { rows: goalRows } = await sql`
+      SELECT status, COUNT(*)::int as count FROM goals
+      WHERE created_at >= ${sevenDaysAgo.toISOString()}
+      GROUP BY status
+    `;
+
+    const { rows: logRows } = await sql`
+      SELECT agent_name, AVG(duration_ms)::int as avg_duration,
+             COUNT(*)::int as total_calls
+      FROM agent_logs
+      WHERE timestamp >= ${sevenDaysAgo.toISOString()}
+      GROUP BY agent_name
+      ORDER BY total_calls DESC
+      LIMIT 5
+    `;
+
+    const { rows: errorRows } = await sql`
+      SELECT action, COUNT(*)::int as count FROM agent_logs
+      WHERE timestamp >= ${sevenDaysAgo.toISOString()}
+        AND (action LIKE '%error%' OR action LIKE '%failed%' OR action LIKE '%blocked%')
+      GROUP BY action
+      ORDER BY count DESC
+      LIMIT 3
+    `;
+
+    const totalBuilds = goalRows.reduce((sum, r) => sum + (r.count as number), 0);
+    const goalMetCount = goalRows.find((r) => r.status === 'goal_met')?.count || 0;
+    const successRate = totalBuilds > 0 ? Math.round((goalMetCount as number / totalBuilds) * 100) : 0;
+
+    const agentLines = logRows.map((r) =>
+      `  ${r.agent_name}: ${r.total_calls} calls, avg ${r.avg_duration}ms`
+    ).join('\n');
+
+    const topErrors = errorRows.length > 0
+      ? errorRows.map((r) => `  ${r.action}: ${r.count}`).join('\n')
+      : '  None';
+
+    const message =
+      `*Steven Weekly Digest*\n` +
+      `Period: last 7 days\n\n` +
+      `Builds: ${totalBuilds}\n` +
+      `Success rate: ${successRate}%\n\n` +
+      `Agent activity:\n${agentLines}\n\n` +
+      `Top errors:\n${topErrors}`;
+
+    await notify(message);
+    console.log('[Heartbeat] Weekly digest sent to Telegram');
+  } catch (err) {
+    console.error('[Heartbeat] Weekly digest failed:', err);
+  }
+}
+
+// ============================================================
+// Feature 39: Agent performance tracking
+// ============================================================
+
+export async function getAgentPerformance(): Promise<Record<string, { avgResponseMs: number; calls: number }>> {
+  try {
+    const { sql } = await import('@vercel/postgres');
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { rows } = await sql`
+      SELECT agent_name,
+             AVG(duration_ms)::int as avg_duration,
+             COUNT(*)::int as call_count
+      FROM agent_logs
+      WHERE timestamp >= ${thirtyDaysAgo.toISOString()}
+        AND duration_ms > 0
+      GROUP BY agent_name
+      ORDER BY avg_duration DESC
+    `;
+
+    const result: Record<string, { avgResponseMs: number; calls: number }> = {};
+    for (const row of rows) {
+      result[row.agent_name as string] = {
+        avgResponseMs: row.avg_duration as number,
+        calls: row.call_count as number,
+      };
+    }
+    return result;
+  } catch {
+    return {};
   }
 }
 

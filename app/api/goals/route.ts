@@ -28,6 +28,7 @@ export async function GET() {
         FROM goals g
         LEFT JOIN floors f ON f.goal_id = g.id
         WHERE g.customer_id = ${session.user.email}
+          AND g.deleted_at IS NULL
         GROUP BY g.id
         ORDER BY g.created_at DESC
       `;

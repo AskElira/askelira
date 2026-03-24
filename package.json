@@ -28,6 +28,7 @@
     "improve": "node scripts/autonomous-improve.js",
     "deploy": "vercel --prod",
     "db:migrate": "node scripts/migrate-all.mjs",
+    "db:validate": "node scripts/validate-schema.mjs",
     "smoke": "npx tsx scripts/smoke-test.ts",
     "scraper:test": "npx tsx scripts/test-scraper.ts"
   },

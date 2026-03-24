@@ -177,7 +177,7 @@ export async function getGoal(
   goalId: string,
 ): Promise<Goal & { floors: Floor[] }> {
   const { rows: goalRows } = await sql`
-    SELECT * FROM goals WHERE id = ${goalId}
+    SELECT * FROM goals WHERE id = ${goalId} AND deleted_at IS NULL
   `;
 
   if (goalRows.length === 0) {
@@ -215,6 +215,30 @@ export async function updateGoalSummary(
     UPDATE goals
     SET building_summary = ${buildingSummary}, updated_at = NOW()
     WHERE id = ${goalId}
+  `;
+}
+
+/**
+ * Soft-delete a goal (Steven Delta SD-003).
+ * Sets deleted_at timestamp instead of removing the row.
+ */
+export async function softDeleteGoal(goalId: string): Promise<void> {
+  await sql`
+    UPDATE goals
+    SET deleted_at = NOW(), updated_at = NOW()
+    WHERE id = ${goalId} AND deleted_at IS NULL
+  `;
+}
+
+/**
+ * Archive a goal (Steven Delta SD-004).
+ * Sets archived_at timestamp for old, completed goals.
+ */
+export async function archiveGoal(goalId: string): Promise<void> {
+  await sql`
+    UPDATE goals
+    SET archived_at = NOW(), updated_at = NOW()
+    WHERE id = ${goalId} AND archived_at IS NULL
   `;
 }
 
