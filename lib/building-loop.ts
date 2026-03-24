@@ -23,6 +23,7 @@ import {
   type Goal,
   getFloor,
   getGoal,
+  getAllFloors,
   getBuildingContext,
   incrementIteration,
   updateFloorStatus,
@@ -45,6 +46,7 @@ import {
   saveCustomerBuildPattern,
   type AutomationPattern,
 } from './pattern-manager';
+import { acquireGoalLock, releaseGoalLock } from './pipeline-state';
 
 // ============================================================
 // Constants
@@ -319,6 +321,23 @@ export async function runFloor(floorId: string, _depth: number = 0): Promise<'li
     return 'live'; // Return gracefully; remaining floors will be picked up by heartbeat stall recovery
   }
   console.log(`[BuildingLoop] Starting floor ${floorId}`);
+
+  // Feature 5: Floor dependency enforcement — verify prior floor is live
+  const floorCheck = await getFloor(floorId);
+  if (floorCheck && floorCheck.floorNumber > 1) {
+    const allFloors = await getAllFloors(floorCheck.goalId);
+    const priorFloor = allFloors.find((f) => f.floorNumber === floorCheck.floorNumber - 1);
+    if (priorFloor && priorFloor.status !== 'live') {
+      console.error(`[BuildingLoop] Floor ${floorCheck.floorNumber} blocked: prior Floor ${priorFloor.floorNumber} is "${priorFloor.status}" (not live)`);
+      return 'blocked';
+    }
+  }
+
+  // Feature 6: Concurrent floor protection — acquire goal lock
+  if (floorCheck && !acquireGoalLock(floorCheck.goalId)) {
+    console.warn(`[BuildingLoop] Goal ${floorCheck.goalId} already has an active floor running. Skipping.`);
+    return 'blocked';
+  }
 
   // Load floor
   const floor = await getFloor(floorId);
@@ -835,7 +854,8 @@ export async function runFloor(floorId: string, _depth: number = 0): Promise<'li
     return 'live';
   }
 
-  // Max iterations exceeded
+  // Max iterations exceeded — release goal lock (Feature 6)
+  releaseGoalLock(floor.goalId);
   console.error(`[BuildingLoop] Floor ${floorId} exceeded max iterations (${MAX_ITERATIONS}). Marking blocked.`);
   notify(`🚫 *Floor ${floor.floorNumber}* "${floor.name}" *blocked* — exceeded ${MAX_ITERATIONS} iterations`);
   await updateFloorStatus(floorId, 'blocked');

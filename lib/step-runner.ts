@@ -48,6 +48,24 @@ import { BUILDING_EVENTS } from './events';
 import { getInternalBaseUrl } from './internal-fetch';
 import { type DavidResult, normalizeDavidResult, serializeDavidResult } from './shared-types';
 import { validateSyntax } from './syntax-validator';
+import { classifyError } from './error-classifier';
+import {
+  startPipelineRun,
+  getPipelineRun,
+  setCurrentAgent,
+  recordAgentDuration,
+  isTimedOut,
+  isCancelled,
+  cancelPipelineRun,
+  acquireGoalLock,
+  releaseGoalLock,
+  isGoalLocked,
+  recordTokenUsage,
+  recordSearchCall,
+  recordEliraQualityScore,
+  endPipelineRun,
+  type PipelineRun,
+} from './pipeline-state';
 
 import {
   detectCategory,
@@ -73,7 +91,7 @@ interface AlbaResult {
   complexity: number;
   patternValidation?: { passed: boolean; confidence: number; category?: string };
   riskAnalysis?: { passed: boolean; totalRiskScore: number };
-  swarmValidation?: { passed: boolean; confidence: number };
+  swarmValidation?: { passed: boolean; confidence: number; unifiedConfidence?: number; agentDebate?: { consensus?: string }; finalDecision?: string };
   researchMetadata?: { userPreferences?: unknown };
 }
 
@@ -112,6 +130,72 @@ export interface StepResult {
 }
 
 const MAX_ITERATIONS = 5;
+const PIPELINE_TIMEOUT_MS = 1800000; // 30 minutes (Feature 3)
+const MIN_RESPONSE_LENGTH = 50; // Feature 4: minimum agent response length
+
+// ============================================================
+// Feature 1: Request-ID aware logging
+// ============================================================
+
+function rlog(floorId: string, msg: string): void {
+  const run = getPipelineRun(floorId);
+  const rid = run ? `[${run.requestId.slice(0, 8)}]` : '';
+  console.log(`[StepRunner]${rid} ${msg}`);
+}
+
+// ============================================================
+// Feature 2: Per-agent retry logic
+// ============================================================
+
+async function routeAgentCallWithRetry(
+  params: Parameters<typeof routeAgentCall>[0],
+  floorId: string,
+): Promise<string> {
+  try {
+    const result = await routeAgentCall(params);
+    // Feature 4: Validate response length
+    if (result.length < MIN_RESPONSE_LENGTH) {
+      rlog(floorId, `[WARN] ${params.agentName} response too short (${result.length} chars), retrying once`);
+      const retryResult = await routeAgentCall(params);
+      return retryResult;
+    }
+    return result;
+  } catch (err) {
+    const category = classifyError(err);
+    const msg = err instanceof Error ? err.message : String(err);
+    rlog(floorId, `[RETRY] ${params.agentName} failed (${category}): ${msg.slice(0, 200)}. Retrying in 30s...`);
+    await new Promise((resolve) => setTimeout(resolve, 30000));
+    return routeAgentCall(params);
+  }
+}
+
+// ============================================================
+// Feature 3: Build timeout check
+// ============================================================
+
+async function checkTimeout(floorId: string, goalId: string): Promise<boolean> {
+  if (isTimedOut(floorId, PIPELINE_TIMEOUT_MS)) {
+    rlog(floorId, `TIMEOUT: Pipeline exceeded ${PIPELINE_TIMEOUT_MS / 60000} minutes`);
+    try {
+      await updateGoalStatus(goalId, 'blocked');
+      notify(`[TIMEOUT] Pipeline for goal \`${goalId}\` exceeded 30 minutes. Goal marked blocked.`);
+    } catch { /* best-effort */ }
+    return true;
+  }
+  return false;
+}
+
+// ============================================================
+// Feature 10: Check cancellation between steps
+// ============================================================
+
+function checkCancelled(floorId: string): boolean {
+  if (isCancelled(floorId)) {
+    rlog(floorId, 'Build cancelled by user');
+    return true;
+  }
+  return false;
+}
 
 // ============================================================
 // Helpers
@@ -340,7 +424,13 @@ export async function chainNextStep(
 // ============================================================
 
 export async function runAlbaStep(floorId: string, iteration: number): Promise<StepResult> {
-  console.log(`[StepRunner] Alba research for floor ${floorId}, iteration ${iteration}`);
+  // Feature 1: Initialize pipeline run on first iteration
+  if (iteration <= 1) {
+    const floor = await getFloor(floorId);
+    if (floor) startPipelineRun(floor.goalId, floorId);
+  }
+  setCurrentAgent(floorId, 'Alba', 'alba');
+  rlog(floorId, `Alba research for floor ${floorId}, iteration ${iteration}`);
 
   const floor = await getFloor(floorId);
   if (!floor) throw new Error(`Floor not found: ${floorId}`);
@@ -482,19 +572,34 @@ export async function runAlbaStep(floorId: string, iteration: number): Promise<S
 
   const albaMessage = parts.join('\n');
 
+  // Feature 3: Check timeout before proceeding
+  if (await checkTimeout(floorId, floor.goalId)) {
+    return { step: 'alba', success: false, nextStep: 'done', message: 'Pipeline timed out', floorId, iteration };
+  }
+  // Feature 10: Check cancellation
+  if (checkCancelled(floorId)) {
+    return { step: 'alba', success: false, nextStep: 'done', message: 'Build cancelled', floorId, iteration };
+  }
+
+  // Feature 7: Log which search provider is being used
+  const activeSearchProvider = process.env.SEARCH_PROVIDER || 'auto';
+  rlog(floorId, `Search provider: ${activeSearchProvider}`);
+
   let albaRaw: string;
   try {
-    console.log(`[Alba] Generating research report...`);
-    albaRaw = await routeAgentCall({
+    rlog(floorId, `Generating research report...`);
+    // Feature 2: Use retry-enabled agent call
+    albaRaw = await routeAgentCallWithRetry({
       systemPrompt: ALBA_RESEARCH_PROMPT,
       userMessage: albaMessage,
       model: 'claude-sonnet-4-5-20250929',
       maxTokens: 4096,
       agentName: 'Alba',
-    });
+    }, floorId);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[StepRunner] Alba failed: ${msg}`);
+    const errCategory = classifyError(err);
+    rlog(floorId, `Alba failed (${errCategory}): ${msg}`);
     await logAgentAction({
       floorId,
       goalId: floor.goalId,
@@ -763,7 +868,14 @@ export async function runAlbaStep(floorId: string, iteration: number): Promise<S
 // ============================================================
 
 export async function runVex1Step(floorId: string, iteration: number): Promise<StepResult> {
-  console.log(`[StepRunner] Vex Gate 1 for floor ${floorId}, iteration ${iteration}`);
+  setCurrentAgent(floorId, 'Vex1', 'vex1');
+  rlog(floorId, `Vex Gate 1 for floor ${floorId}, iteration ${iteration}`);
+  if (await checkTimeout(floorId, (await getFloor(floorId))?.goalId || '')) {
+    return { step: 'vex1', success: false, nextStep: 'done', message: 'Pipeline timed out', floorId, iteration };
+  }
+  if (checkCancelled(floorId)) {
+    return { step: 'vex1', success: false, nextStep: 'done', message: 'Build cancelled', floorId, iteration };
+  }
 
   const floor = await getFloor(floorId);
   if (!floor) throw new Error(`Floor not found: ${floorId}`);
@@ -789,13 +901,13 @@ export async function runVex1Step(floorId: string, iteration: number): Promise<S
     JSON.stringify(albaResult, null, 2),
   ].join('\n');
 
-  const vex1Raw = await routeAgentCall({
+  const vex1Raw = await routeAgentCallWithRetry({
     systemPrompt: VEX_GATE1_PROMPT,
     userMessage: vex1Message,
     model: 'claude-sonnet-4-5-20250929',
     maxTokens: 2048,
     agentName: 'Vex1',
-  });
+  }, floorId);
 
   const vex1Result = parseJSON<VexGate1Result>(vex1Raw, 'Vex-Gate1');
 
@@ -860,7 +972,14 @@ export async function runVex1Step(floorId: string, iteration: number): Promise<S
 // ============================================================
 
 export async function runDavidStep(floorId: string, iteration: number): Promise<StepResult> {
-  console.log(`[StepRunner] David build for floor ${floorId}, iteration ${iteration}`);
+  setCurrentAgent(floorId, 'David', 'david');
+  rlog(floorId, `David build for floor ${floorId}, iteration ${iteration}`);
+  if (await checkTimeout(floorId, (await getFloor(floorId))?.goalId || '')) {
+    return { step: 'david', success: false, nextStep: 'done', message: 'Pipeline timed out', floorId, iteration };
+  }
+  if (checkCancelled(floorId)) {
+    return { step: 'david', success: false, nextStep: 'done', message: 'Build cancelled', floorId, iteration };
+  }
 
   const floor = await getFloor(floorId);
   if (!floor) throw new Error(`Floor not found: ${floorId}`);
@@ -925,7 +1044,7 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
       matchedPatterns: [], // Stored in separate report
       deviations: [],
       recommendations: [],
-      category: patternValidation.category,
+      category: patternValidation.category ?? null,
       validationReport: floor.patternValidationReport || '',
     } : undefined,
     riskAnalysis: riskAnalysis ? {
@@ -940,14 +1059,14 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
     } : undefined,
     swarmValidation: swarmValidation ? {
       passed: swarmValidation.passed,
-      unifiedConfidence: swarmValidation.unifiedConfidence,
+      unifiedConfidence: swarmValidation.unifiedConfidence ?? swarmValidation.confidence,
       agentDebate: {
         consensus: swarmValidation.agentDebate?.consensus || '',
         agentOpinions: [],
         debateRounds: 2,
-        finalRecommendation: swarmValidation.finalDecision,
+        finalRecommendation: (swarmValidation.finalDecision as 'approve' | 'reject' | 'revise') || 'approve',
       },
-      finalDecision: swarmValidation.finalDecision,
+      finalDecision: (swarmValidation.finalDecision as 'approve' | 'reject' | 'revise') || 'approve',
       reasoning: '',
       combinedReport: floor.swarmValidationReport || '',
       recommendedChanges: [],
@@ -961,7 +1080,7 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
   console.log(`[David] Prediction prompt generated (confidence: ${(predictionPrompt.metadata.unifiedConfidence * 100).toFixed(1)}%)`);
   console.log(`[David] Constraints: ${predictionPrompt.constraints.length}, Quality Gates: ${predictionPrompt.qualityGates.length}`);
 
-  const davidRaw = await routeAgentCall({
+  const davidRaw = await routeAgentCallWithRetry({
     systemPrompt: DAVID_BUILD_PROMPT,
     userMessage: davidMessage,
     // Use Sonnet for step-based loop — Opus exceeds Vercel Hobby plan's 60s limit.
@@ -970,7 +1089,13 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
     model: 'claude-sonnet-4-5-20250929',
     maxTokens: 8192,
     agentName: 'David',
-  });
+  }, floorId);
+  // Feature 35: Log slow agent
+  const davidDuration = Date.now() - davidStartTime;
+  if (davidDuration > 60000) {
+    rlog(floorId, `[SLOW] David took ${Math.round(davidDuration / 1000)}s`);
+  }
+  recordAgentDuration(floorId, 'David', davidDuration);
 
   const davidRawParsed = parseJSON<Record<string, unknown>>(davidRaw, 'David');
   const davidResult = normalizeDavidResult(davidRawParsed);
@@ -1089,7 +1214,14 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
 // ============================================================
 
 export async function runVex2Step(floorId: string, iteration: number): Promise<StepResult> {
-  console.log(`[StepRunner] Vex Gate 2 for floor ${floorId}, iteration ${iteration}`);
+  setCurrentAgent(floorId, 'Vex2', 'vex2');
+  rlog(floorId, `Vex Gate 2 for floor ${floorId}, iteration ${iteration}`);
+  if (await checkTimeout(floorId, (await getFloor(floorId))?.goalId || '')) {
+    return { step: 'vex2', success: false, nextStep: 'done', message: 'Pipeline timed out', floorId, iteration };
+  }
+  if (checkCancelled(floorId)) {
+    return { step: 'vex2', success: false, nextStep: 'done', message: 'Build cancelled', floorId, iteration };
+  }
 
   const floor = await getFloor(floorId);
   if (!floor) throw new Error(`Floor not found: ${floorId}`);
@@ -1123,15 +1255,63 @@ export async function runVex2Step(floorId: string, iteration: number): Promise<S
     JSON.stringify(davidResult, null, 2),
   ].join('\n');
 
-  const vex2Raw = await routeAgentCall({
+  const vex2Raw = await routeAgentCallWithRetry({
     systemPrompt: VEX_GATE2_PROMPT,
     userMessage: vex2Message,
     model: 'claude-sonnet-4-5-20250929',
     maxTokens: 2048,
     agentName: 'Vex2',
-  });
+  }, floorId);
 
-  const vex2Result = parseJSON<VexGate2Result>(vex2Raw, 'Vex-Gate2');
+  let vex2Result = parseJSON<VexGate2Result>(vex2Raw, 'Vex-Gate2');
+
+  // Feature 8: David model escalation — if Vex2 confidence < 60, re-invoke David with Opus
+  const run = getPipelineRun(floorId);
+  const hasEscalated = run?.agentDurations['David_escalated'] !== undefined;
+  if (vex2Result.qualityScore < 60 && !hasEscalated) {
+    rlog(floorId, `[ESCALATION] Vex2 score ${vex2Result.qualityScore} < 60, re-invoking David with Opus`);
+    try {
+      const escalatedDavidRaw = await routeAgentCallWithRetry({
+        systemPrompt: DAVID_BUILD_PROMPT,
+        userMessage: vex2Message, // reuse same context
+        model: 'claude-opus-4-6',
+        maxTokens: 8192,
+        agentName: 'David',
+      }, floorId);
+      recordAgentDuration(floorId, 'David_escalated', 1);
+
+      const escalatedParsed = parseJSON<Record<string, unknown>>(escalatedDavidRaw, 'David-Escalated');
+      const escalatedResult = normalizeDavidResult(escalatedParsed);
+
+      await updateFloorStatus(floorId, 'building', {
+        buildOutput: serializeDavidResult(escalatedResult),
+      } as Partial<Floor>);
+
+      // Re-run Vex2
+      const vex2RerunMessage = [
+        `FLOOR ${floor.floorNumber}: ${floor.name}`,
+        `Success Condition: ${floor.successCondition}`,
+        '',
+        'ALBA RESEARCH REPORT:',
+        JSON.stringify(albaResult, null, 2),
+        '',
+        'DAVID BUILD OUTPUT (ESCALATED - Opus):',
+        JSON.stringify(escalatedResult, null, 2),
+      ].join('\n');
+
+      const vex2RerunRaw = await routeAgentCallWithRetry({
+        systemPrompt: VEX_GATE2_PROMPT,
+        userMessage: vex2RerunMessage,
+        model: 'claude-sonnet-4-5-20250929',
+        maxTokens: 2048,
+        agentName: 'Vex2',
+      }, floorId);
+      vex2Result = parseJSON<VexGate2Result>(vex2RerunRaw, 'Vex-Gate2-Rerun');
+    } catch (escErr) {
+      rlog(floorId, `[ESCALATION] Failed: ${escErr instanceof Error ? escErr.message : String(escErr)}`);
+      // Continue with original Vex2 result
+    }
+  }
 
   await updateFloorStatus(floorId, 'auditing', {
     vexGate2Report: JSON.stringify(vex2Result),
@@ -1158,7 +1338,7 @@ export async function runVex2Step(floorId: string, iteration: number): Promise<S
   });
 
   if (!vex2Result.approved) {
-    console.log(`[StepRunner] Vex Gate 2 REJECTED: ${vex2Result.verdict}`);
+    rlog(floorId, `Vex Gate 2 REJECTED: ${vex2Result.verdict}`);
 
     // Pattern failure feedback after 2+ rejections
     try {
@@ -1209,7 +1389,11 @@ export async function runVex2Step(floorId: string, iteration: number): Promise<S
 // ============================================================
 
 export async function runEliraStep(floorId: string, iteration: number): Promise<StepResult> {
-  console.log(`[StepRunner] Elira review for floor ${floorId}, iteration ${iteration}`);
+  setCurrentAgent(floorId, 'Elira', 'elira');
+  rlog(floorId, `Elira review for floor ${floorId}, iteration ${iteration}`);
+  if (checkCancelled(floorId)) {
+    return { step: 'elira', success: false, nextStep: 'done', message: 'Build cancelled', floorId, iteration };
+  }
 
   const floor = await getFloor(floorId);
   if (!floor) throw new Error(`Floor not found: ${floorId}`);
@@ -1250,13 +1434,13 @@ export async function runEliraStep(floorId: string, iteration: number): Promise<
     JSON.stringify(davidResult, null, 2),
   ].join('\n');
 
-  const eliraRaw = await routeAgentCall({
-    systemPrompt: ELIRA_FLOOR_REVIEW_PROMPT,
+  const eliraRaw = await routeAgentCallWithRetry({
+    systemPrompt: ELIRA_FLOOR_REVIEW_PROMPT + '\n\nAlso include a "qualityScore" (1-10) in your JSON output rating the overall quality of this floor\'s build.',
     userMessage: eliraMessage,
     model: 'claude-sonnet-4-5-20250929',
     maxTokens: 1024,
     agentName: 'Elira',
-  });
+  }, floorId);
 
   const eliraResult = parseJSON<EliraReviewResult>(eliraRaw, 'Elira');
 
@@ -1317,7 +1501,8 @@ export async function runEliraStep(floorId: string, iteration: number): Promise<
 // ============================================================
 
 export async function runFinalizeStep(floorId: string, iteration: number): Promise<StepResult> {
-  console.log(`[StepRunner] Finalize for floor ${floorId}`);
+  setCurrentAgent(floorId, 'System', 'finalize');
+  rlog(floorId, `Finalize for floor ${floorId}`);
 
   const floor = await getFloor(floorId);
   if (!floor) throw new Error(`Floor not found: ${floorId}`);
@@ -1447,10 +1632,26 @@ export async function runFinalizeStep(floorId: string, iteration: number): Promi
     };
   }
 
-  // Last floor — goal met
-  console.log(`[StepRunner] All floors complete. Goal met!`);
+  // Last floor -- goal met
+  rlog(floorId, `All floors complete. Goal met!`);
   await updateGoalStatus(floor.goalId, 'goal_met');
-  notify(`🏆 *Goal met!* All floors complete for "${goal.goalText.slice(0, 80)}"`);
+
+  // Feature 37: Structured Telegram build summary
+  const finalRun = endPipelineRun(floorId);
+  const totalTimeStr = finalRun ? `${Math.round((Date.now() - finalRun.startedAt) / 1000)}s` : 'unknown';
+  const costStr = finalRun ? `$${finalRun.tokenUsage.estimatedCostUsd.toFixed(4)}` : 'unknown';
+  const searchStr = finalRun ? `Tavily: ${finalRun.searchCounts.tavily}, Brave: ${finalRun.searchCounts.brave}` : '';
+  notify(
+    `*Goal complete!*\n` +
+    `Goal: "${goal.goalText.slice(0, 80)}"\n` +
+    `Floors: ${goalWithFloors.floors?.length || '?'}\n` +
+    `Total time: ${totalTimeStr}\n` +
+    `Est. cost: ${costStr}\n` +
+    (searchStr ? `Searches: ${searchStr}` : '')
+  );
+
+  // Release goal lock (Feature 6)
+  releaseGoalLock(floor.goalId);
 
   emitEvent(BUILDING_EVENTS.GOAL_MET, {
     goalId: floor.goalId,
