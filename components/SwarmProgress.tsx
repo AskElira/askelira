@@ -66,6 +66,7 @@ export default function SwarmProgress({ url, onComplete, onError }: SwarmProgres
     });
 
     source.onerror = () => {
+      onError('Connection lost');
       source.close();
     };
 

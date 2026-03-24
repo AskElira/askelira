@@ -6,7 +6,6 @@ export async function GET() {
   if (!apiKey) {
     return NextResponse.json({
       error: 'ANTHROPIC_API_KEY not set',
-      envKeys: Object.keys(process.env).filter(k => k.includes('ANTHROPIC'))
     });
   }
 
@@ -31,7 +30,6 @@ export async function GET() {
     return NextResponse.json({
       status: res.status,
       ok: res.ok,
-      apiKeyPrefix: apiKey.substring(0, 15),
       response: data,
     });
   } catch (err: unknown) {

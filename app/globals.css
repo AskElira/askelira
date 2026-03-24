@@ -33,3 +33,13 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes steven-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(250, 204, 21, 0.5); }
+  50% { box-shadow: 0 0 16px rgba(250, 204, 21, 0.8); }
+}

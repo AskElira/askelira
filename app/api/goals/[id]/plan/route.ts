@@ -10,21 +10,19 @@ export async function POST(
   try {
     const goalId = params.id;
 
-    // Rate limit: 5/hour per goalId
-    if (goalId) {
-      const rateCheck = checkRateLimit(`goals_plan:${goalId}`, 5, 3600000);
-      if (!rateCheck.allowed) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded. Try again later.' },
-          { status: 429 },
-        );
-      }
-    }
-
     if (!goalId) {
       return NextResponse.json(
         { error: 'Goal ID is required' },
         { status: 400 },
+      );
+    }
+
+    // Rate limit: 5/hour per goalId
+    const rateCheck = checkRateLimit(`goals_plan:${goalId}`, 5, 3600000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        { status: 429 },
       );
     }
 
