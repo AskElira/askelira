@@ -1,0 +1,20 @@
+{
+  "name": "trading",
+  "description": "Trading decision template with market analysis and risk management",
+  "fields": [
+    {"key": "market", "label": "Market", "type": "text", "required": true},
+    {"key": "ticker", "label": "Ticker/Symbol", "type": "text", "required": true},
+    {"key": "timeframe", "label": "Timeframe", "type": "text", "default": "1D"},
+    {"key": "entry_price", "label": "Entry Price", "type": "number", "required": true},
+    {"key": "stop_loss", "label": "Stop Loss", "type": "number", "required": true},
+    {"key": "take_profit", "label": "Take Profit", "type": "number", "required": true},
+    {"key": "risk_percent", "label": "Risk %", "type": "number", "default": 1}
+  ],
+  "agents": {
+    "alba": "Market research and news analysis",
+    "david": "Swarm debate on trade viability",
+    "vex": "Risk management audit",
+    "elira": "Final trade decision (GO/NO-GO)"
+  },
+  "question_template": "Should I enter a {{market}} trade on {{ticker}} at {{entry_price}} with stop loss {{stop_loss}} and take profit {{take_profit}}?"
+}

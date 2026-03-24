@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <!-- Background gradient -->
+    <radialGradient id="sphere" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#3730a3"/>
+    </radialGradient>
+    <!-- Outer glow -->
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="transparent"/>
+      <stop offset="85%" stop-color="rgba(99,102,241,0.15)"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <!-- Inner highlight -->
+    <radialGradient id="highlight" cx="35%" cy="30%" r="35%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <!-- Shadow -->
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="rgba(0,0,0,0.4)"/>
+    </filter>
+    <!-- Text glow -->
+    <filter id="textglow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Glow ring -->
+  <circle cx="256" cy="256" r="250" fill="url(#glow)"/>
+
+  <!-- Main sphere -->
+  <circle cx="256" cy="256" r="210" fill="url(#sphere)" filter="url(#shadow)"/>
+
+  <!-- Highlight -->
+  <circle cx="256" cy="256" r="210" fill="url(#highlight)"/>
+
+  <!-- Rim light -->
+  <circle cx="256" cy="256" r="208" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+
+  <!-- AE Monogram -->
+  <text x="256" y="290" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-size="160" font-weight="700" fill="white" filter="url(#textglow)" letter-spacing="-8">AE</text>
+</svg>

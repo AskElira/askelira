@@ -1,0 +1,35 @@
+:root {
+  --accent: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.4);
+  --surface: #0f1117;
+  --panel: #1a1d27;
+  --panel-glass: rgba(26, 29, 39, 0.7);
+  --border: #2a2d3a;
+  --green: #4ade80;
+  --red: #f87171;
+  --yellow: #facc15;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--surface);
+  color: #e5e7eb;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }

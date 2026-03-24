@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "strict": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "sourceMap": true,
+    "noEmitOnError": false
+  },
+  "include": ["bin/**/*", "commands/**/*", "lib/**/*", "types/**/*", "../lib/llm-providers.ts", "../lib/web-search.ts", "../lib/agentmail-config.ts", "../lib/openclaw-package-verifier.ts", "../lib/openclaw-client.ts", "../lib/personal-context.ts", "../lib/progress-tracker.ts"],
+  "exclude": ["node_modules", "dist", "../lib/workspace/**/*"]
+}

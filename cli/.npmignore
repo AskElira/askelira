@@ -1,0 +1,15 @@
+# Source files (only dist/ is published)
+bin/
+commands/
+lib/
+types/
+scripts/
+
+# Config
+tsconfig.json
+.eslintrc*
+
+# Dev files
+*.ts
+!dist/**/*.d.ts
+node_modules/

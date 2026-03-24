@@ -1,0 +1,19 @@
+{
+  "name": "hiring",
+  "description": "Hiring decision template for candidate evaluation",
+  "fields": [
+    {"key": "role", "label": "Role/Position", "type": "text", "required": true},
+    {"key": "candidate_name", "label": "Candidate Name", "type": "text", "required": true},
+    {"key": "skills", "label": "Key Skills", "type": "text", "required": true},
+    {"key": "experience_years", "label": "Years Experience", "type": "number", "required": true},
+    {"key": "salary_requirement", "label": "Salary Requirement", "type": "text", "required": true},
+    {"key": "culture_fit", "label": "Culture Fit (1-10)", "type": "number", "default": 7}
+  ],
+  "agents": {
+    "alba": "Background research and reference checks",
+    "david": "Team consensus on candidate",
+    "vex": "Red flag audit and risk assessment",
+    "elira": "Hire/No-Hire decision"
+  },
+  "question_template": "Should we hire {{candidate_name}} for {{role}} position with {{experience_years}} years experience at {{salary_requirement}}?"
+}

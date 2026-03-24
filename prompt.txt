@@ -1,0 +1,20 @@
+QUESTION:
+How do we bundle OpenClaw inside the AskElira npm package so developers can install everything with one command?
+
+REQUIREMENTS:
+1. Single install: npm install -g askelira
+2. Auto-detect if OpenClaw already installed
+3. If not installed: Bundle and install OpenClaw
+4. If installed: Just use existing OpenClaw
+5. Auto-start gateway on "askelira start"
+6. CLI: askelira swarm --question "X" --agents 10000
+7. Desktop app UI (Electron or web UI)
+8. Runs locally (user's API keys, their machine)
+9. We charge for UI/features, not usage
+
+GOAL:
+Create 10 PHASE × 10 STEP build plan (100 total steps) for Claude Code to execute.
+
+Each step = 1 specific Claude Code prompt.
+
+Output: BUILD_PLAN.json with 100 steps

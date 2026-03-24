@@ -1,0 +1,10 @@
+
+   ___        __   ________
+  / _ | _____/ /__/ __/ / (_)_______ _
+ / __ |(_-</  '_/ _// / / / __/ _ `/
+/_/ |_/___/_/\_\\__//_/_/_/\__/\_,_/
+
+Build automations from your terminal
+
+  Docs:  https://askelira.com/docs
+  Host:  https://askelira.com

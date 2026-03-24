@@ -1,0 +1,42 @@
+# Version control
+.git
+.github
+
+# Tests and coverage
+test/
+coverage/
+jest.config.js
+
+# Documentation (README.md included by default)
+docs/
+CONTRIBUTING.md
+
+# Environment and secrets
+.env
+.env.*
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+.DS_Store
+Thumbs.db
+
+# Dev config
+.prettierrc.json
+.eslintrc.*
+eslint.config.*
+nodemon.json
+.editorconfig
+
+# Build artifacts
+dist/
+build/
+*.icns
+*.ico
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,23 @@
+# Text files — normalize to LF
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
+*.txt text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.icns binary
+*.gif binary
+
+# Linguist overrides
+node_modules/ linguist-vendored
+dist/ linguist-generated
+build/ linguist-generated

@@ -1,0 +1,65 @@
+{
+  "name": "askelira",
+  "version": "1.0.0",
+  "description": "AskElira 2.1 -- Build automations from your terminal",
+  "author": "Alvin Kerremans",
+  "license": "AGPL-3.0-or-later",
+  "homepage": "https://askelira.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askelira/askelira.git",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://github.com/askelira/askelira/issues"
+  },
+  "keywords": [
+    "askelira",
+    "automation",
+    "ai",
+    "agents",
+    "claude",
+    "cli",
+    "building",
+    "heartbeat",
+    "devtools"
+  ],
+  "bin": {
+    "askelira": "./dist/bin/askelira.js"
+  },
+  "main": "./dist/bin/askelira.js",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "npx ts-node bin/askelira.ts",
+    "clean": "rm -rf dist",
+    "smoke-test": "bash scripts/smoke-test.sh"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.3",
+    "commander": "^12.0.0",
+    "conf": "^10.2.0",
+    "dotenv": "^16.0.0",
+    "eventsource": "^2.0.2",
+    "inquirer": "^8.2.6",
+    "ora": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^8.2.0",
+    "@types/node": "^20.0.0",
+    "@types/prop-types": "^15.7.15",
+    "@types/semver": "^7.7.1",
+    "semver": "^7.7.4",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}

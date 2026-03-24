@@ -1,0 +1,86 @@
+{
+  "project": "AskElira 2.0 - Bundled OpenClaw NPM Package",
+  "architecture": "Single npm package with OpenClaw bundled",
+  "target": "Developers who want one-command install",
+  "memory_system": "Hybrid: File-based (transparency) + Local vector DB (semantic search)",
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Project Setup & Package Structure",
+      "steps": [
+        {
+          "step": 1,
+          "claude_prompt": "Create package.json for askelira npm package:\n\n- name: askelira\n- version: 2.0.0\n- bin: { askelira: './bin/cli.js' }\n- dependencies: openclaw, @pinecone-database/pinecone, chromadb, commander\n- peerDependencies: node >= 18\n- scripts: postinstall, start\n- MIT license\n\nWork in: ~/Desktop/askelira-bundled-npm/",
+          "expected_output": "package.json",
+          "success_criteria": "Valid npm package configuration",
+          "estimated_time": "3 min"
+        },
+        {
+          "step": 2,
+          "claude_prompt": "Create project directory structure:\n\nmkdir -p src/{agents,cli,gateway,memory,ui}\nmkdir -p bin\nmkdir -p config\nmkdir -p templates\n\nCreate .gitignore: node_modules/, .env, *.log, data/\n\nWork in: ~/Desktop/askelira-bundled-npm/",
+          "expected_output": "Directory structure",
+          "success_criteria": "Folders exist",
+          "estimated_time": "2 min"
+        },
+        {
+          "step": 3,
+          "claude_prompt": "Create bin/cli.js - Main CLI entry point:\n\n#!/usr/bin/env node\nconst { Command } = require('commander');\nconst program = new Command();\n\nprogram\n  .name('askelira')\n  .description('Visual swarm intelligence for developers')\n  .version('2.0.0');\n\nprogram\n  .command('start')\n  .description('Start AskElira gateway')\n  .action(require('../src/cli/start'));\n\nprogram\n  .command('swarm')\n  .option('-q, --question <text>', 'Question for agents')\n  .option('-a, --agents <number>', 'Agent count (1k-1M)', '10000')\n  .action(require('../src/cli/swarm'));\n\nprogram.parse();\n\nMake executable: chmod +x bin/cli.js",
+          "expected_output": "bin/cli.js",
+          "success_criteria": "CLI parses commands",
+          "estimated_time": "5 min"
+        },
+        {
+          "step": 4,
+          "claude_prompt": "Create src/cli/start.js - Gateway starter:\n\nconst { Gateway } = require('../gateway');\nconst chalk = require('chalk');\n\nmodule.exports = async function start() {\n  console.log(chalk.cyan('🚀 Starting AskElira...'));\n  \n  // Check if OpenClaw installed\n  const hasOpenClaw = await checkOpenClaw();\n  \n  if (!hasOpenClaw) {\n    console.log('Installing OpenClaw...');\n    await installOpenClaw();\n  }\n  \n  // Start gateway\n  const gateway = new Gateway();\n  await gateway.start();\n  \n  console.log(chalk.green('✅ AskElira ready!'));\n  console.log('Try: askelira swarm --question \"Should I quit my job?\"');\n};\n\nasync function checkOpenClaw() {\n  try {\n    require('openclaw');\n    return true;\n  } catch {\n    return false;\n  }\n}\n\nasync function installOpenClaw() {\n  const { execSync } = require('child_process');\n  execSync('npm install -g openclaw', { stdio: 'inherit' });\n}",
+          "expected_output": "src/cli/start.js",
+          "success_criteria": "Checks and installs OpenClaw",
+          "estimated_time": "7 min"
+        },
+        {
+          "step": 5,
+          "claude_prompt": "Create src/cli/swarm.js - Swarm command handler:\n\nconst { Swarm } = require('../agents/swarm');\nconst { saveToMemory } = require('../memory');\nconst chalk = require('chalk');\n\nmodule.exports = async function swarm(options) {\n  const { question, agents } = options;\n  \n  if (!question) {\n    console.error('Error: --question required');\n    process.exit(1);\n  }\n  \n  const agentCount = parseInt(agents);\n  const cost = calculateCost(agentCount);\n  \n  console.log(chalk.cyan(`\\n🧠 Starting ${agentCount.toLocaleString()} agent swarm...`));\n  console.log(chalk.gray(`   Cost: $${cost.toFixed(3)}`));\n  console.log();\n  \n  const swarm = new Swarm({ agents: agentCount });\n  const result = await swarm.debate(question);\n  \n  // Save to memory\n  await saveToMemory(result);\n  \n  // Display results\n  console.log(chalk.green(`\\n✅ Decision: ${result.decision}`));\n  console.log(chalk.blue(`   Confidence: ${result.confidence}%`));\n  console.log(chalk.gray(`   Cost: $${result.actualCost.toFixed(3)}`));\n  \n  return result;\n};\n\nfunction calculateCost(agents) {\n  return agents * 0.000007; // ~$0.007 per 1k agents\n}",
+          "expected_output": "src/cli/swarm.js",
+          "success_criteria": "Runs swarm and saves to memory",
+          "estimated_time": "10 min"
+        },
+        {
+          "step": 6,
+          "claude_prompt": "Create src/gateway/index.js - OpenClaw gateway wrapper:\n\nconst { spawn } = require('child_process');\nconst chalk = require('chalk');\n\nclass Gateway {\n  constructor() {\n    this.process = null;\n    this.port = 5678;\n  }\n  \n  async start() {\n    // Check if already running\n    const running = await this.isRunning();\n    if (running) {\n      console.log(chalk.green('✅ Gateway already running'));\n      return;\n    }\n    \n    // Start OpenClaw gateway\n    this.process = spawn('openclaw', ['gateway', 'start'], {\n      stdio: 'inherit'\n    });\n    \n    // Wait for ready\n    await this.waitForReady();\n  }\n  \n  async isRunning() {\n    try {\n      const res = await fetch(`http://localhost:${this.port}/health`);\n      return res.ok;\n    } catch {\n      return false;\n    }\n  }\n  \n  async waitForReady() {\n    for (let i = 0; i < 30; i++) {\n      if (await this.isRunning()) return;\n      await new Promise(r => setTimeout(r, 1000));\n    }\n    throw new Error('Gateway failed to start');\n  }\n}\n\nmodule.exports = { Gateway };",
+          "expected_output": "src/gateway/index.js",
+          "success_criteria": "Can start/check OpenClaw gateway",
+          "estimated_time": "8 min"
+        },
+        {
+          "step": 7,
+          "claude_prompt": "Create src/agents/swarm.js - Core swarm orchestration:\n\nconst { Alba } = require('./alba');\nconst { David } = require('./david');\nconst { Vex } = require('./vex');\nconst { Elira } = require('./elira');\n\nclass Swarm {\n  constructor(options = {}) {\n    this.agents = options.agents || 10000;\n    this.question = null;\n  }\n  \n  async debate(question) {\n    this.question = question;\n    \n    // Alba: Research\n    const research = await new Alba().research(question);\n    \n    // David: Swarm debate\n    const debate = await new David(this.agents).run(question, research);\n    \n    // Vex: Audit\n    const audit = await new Vex().validate(debate);\n    \n    // Elira: Synthesize\n    const result = await new Elira().synthesize({\n      question,\n      research,\n      debate,\n      audit\n    });\n    \n    return {\n      decision: result.decision,\n      confidence: result.confidence,\n      argumentsFor: result.for,\n      argumentsAgainst: result.against,\n      actualCost: result.cost,\n      agents: this.agents,\n      timestamp: new Date().toISOString()\n    };\n  }\n}\n\nmodule.exports = { Swarm };",
+          "expected_output": "src/agents/swarm.js",
+          "success_criteria": "Orchestrates Alba→David→Vex→Elira",
+          "estimated_time": "12 min"
+        },
+        {
+          "step": 8,
+          "claude_prompt": "Create src/memory/index.js - Hybrid memory system:\n\nconst fs = require('fs');\nconst path = require('path');\nconst { ChromaClient } = require('chromadb');\n\nconst MEMORY_DIR = path.join(process.env.HOME, '.askelira', 'memory');\nconst VECTOR_DIR = path.join(MEMORY_DIR, 'vectordb');\n\n// Ensure directories exist\nfs.mkdirSync(MEMORY_DIR, { recursive: true });\nfs.mkdirSync(VECTOR_DIR, { recursive: true });\n\nconst chroma = new ChromaClient({ path: VECTOR_DIR });\nlet collection;\n\nasync function init() {\n  collection = await chroma.getOrCreateCollection({ name: 'debates' });\n}\n\nasync function saveToMemory(result) {\n  const date = new Date().toISOString().split('T')[0];\n  const filepath = path.join(MEMORY_DIR, `${date}.md`);\n  \n  // Save to file (transparency)\n  const entry = `\n## ${result.question}\n**Decision:** ${result.decision} (${result.confidence}%)\n**Time:** ${new Date().toLocaleTimeString()}\n**Cost:** $${result.actualCost.toFixed(3)}\n**Agents:** ${result.agents.toLocaleString()}\n\n### Arguments FOR:\n${result.argumentsFor.map(a => `- ${a}`).join('\\n')}\n\n### Arguments AGAINST:\n${result.argumentsAgainst.map(a => `- ${a}`).join('\\n')}\n`;\n  \n  fs.appendFileSync(filepath, entry);\n  \n  // Save to vector DB (semantic search)\n  if (!collection) await init();\n  \n  await collection.add({\n    ids: [`debate-${Date.now()}`],\n    documents: [result.question],\n    metadatas: [{\n      decision: result.decision,\n      confidence: result.confidence,\n      date\n    }]\n  });\n}\n\nmodule.exports = { saveToMemory, init };",
+          "expected_output": "src/memory/index.js",
+          "success_criteria": "Saves to file + vector DB",
+          "estimated_time": "15 min"
+        },
+        {
+          "step": 9,
+          "claude_prompt": "Create src/agents/alba.js - Research agent stub:\n\nclass Alba {\n  async research(question) {\n    // TODO: Implement web search via Brave API\n    return {\n      context: 'Research results here',\n      sources: []\n    };\n  }\n}\n\nmodule.exports = { Alba };",
+          "expected_output": "src/agents/alba.js",
+          "success_criteria": "Alba agent stub",
+          "estimated_time": "3 min"
+        },
+        {
+          "step": 10,
+          "claude_prompt": "Create src/agents/david.js, vex.js, elira.js - Agent stubs:\n\n// david.js\nclass David {\n  constructor(agentCount) {\n    this.agents = agentCount;\n  }\n  async run(question, research) {\n    // TODO: MiroFish swarm\n    return { clusters: [], votes: {} };\n  }\n}\nmodule.exports = { David };\n\n// vex.js\nclass Vex {\n  async validate(debate) {\n    // TODO: Audit logic\n    return { valid: true };\n  }\n}\nmodule.exports = { Vex };\n\n// elira.js\nclass Elira {\n  async synthesize(data) {\n    // TODO: Final decision\n    return {\n      decision: 'YES',\n      confidence: 75,\n      for: ['Reason 1'],\n      against: ['Reason 2'],\n      cost: 0.07\n    };\n  }\n}\nmodule.exports = { Elira };",
+          "expected_output": "Agent stub files",
+          "success_criteria": "All 4 agents exist",
+          "estimated_time": "5 min"
+        }
+      ]
+    }
+  ],
+  "total_steps": 10,
+  "note": "Phase 1 only - creates foundation. Full 100 steps would include: Phase 2 (Agent implementation), Phase 3 (Memory system), Phase 4 (UI), Phase 5 (Desktop app), Phase 6 (Templates), Phase 7 (Testing), Phase 8 (Documentation), Phase 9 (Publishing), Phase 10 (Marketing)"
+}

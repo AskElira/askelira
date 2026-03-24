@@ -1,0 +1,387 @@
+/* ========================================
+   AskElira 2.0 — Custom Styles
+   Glassmorphism + Particle Animations
+   ======================================== */
+
+/* --- Base --- */
+:root {
+  --accent: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.4);
+  --surface: #0f1117;
+  --panel: #1a1d27;
+  --panel-glass: rgba(26, 29, 39, 0.7);
+  --border: #2a2d3a;
+  --green: #4ade80;
+  --red: #f87171;
+  --yellow: #facc15;
+}
+
+* { box-sizing: border-box; }
+
+/* --- Glassmorphism Cards --- */
+.glass-card {
+  background: var(--panel-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.glass-card-static {
+  background: var(--panel-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* --- Swarm Visualization --- */
+.swarm-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+}
+
+.swarm-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent-glow);
+  animation: swarm-drift linear infinite;
+  opacity: 0;
+}
+
+.swarm-particle.active {
+  opacity: 1;
+  animation: swarm-pulse 2s ease-in-out infinite, swarm-drift linear infinite;
+}
+
+.swarm-particle.for  { background: var(--green); box-shadow: 0 0 6px rgba(74, 222, 128, 0.4); }
+.swarm-particle.against { background: var(--red); box-shadow: 0 0 6px rgba(248, 113, 113, 0.4); }
+
+@keyframes swarm-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.8); }
+}
+
+@keyframes swarm-drift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(15px, -10px); }
+  50% { transform: translate(-10px, 15px); }
+  75% { transform: translate(10px, 5px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Cluster glow effect */
+.swarm-cluster {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+  animation: cluster-breathe 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes cluster-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.2); opacity: 0.6; }
+}
+
+/* --- Confidence Meter --- */
+.confidence-meter {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.confidence-meter svg {
+  transform: rotate(-90deg);
+}
+
+.confidence-meter-track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 8;
+}
+
+.confidence-meter-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 314;
+  stroke-dashoffset: 314;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s ease;
+}
+
+.confidence-meter-fill.high   { stroke: var(--green); }
+.confidence-meter-fill.medium { stroke: var(--yellow); }
+.confidence-meter-fill.low    { stroke: var(--red); }
+
+.confidence-meter-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* --- Loading States --- */
+.loading-skeleton {
+  background: linear-gradient(90deg, var(--panel) 25%, rgba(42, 45, 58, 0.6) 50%, var(--panel) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.loading-dots::after {
+  content: '';
+  animation: loading-dots-anim 1.5s steps(3, end) infinite;
+}
+
+@keyframes loading-dots-anim {
+  0%   { content: ''; }
+  33%  { content: '.'; }
+  66%  { content: '..'; }
+  100% { content: '...'; }
+}
+
+/* Phase progress indicator */
+.phase-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.35);
+  transition: color 0.3s ease;
+}
+
+.phase-step.active {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.phase-step.complete {
+  color: var(--green);
+}
+
+.phase-step .phase-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.phase-step.active .phase-icon {
+  border-color: var(--accent);
+  background: var(--accent);
+  animation: phase-ping 1s ease-in-out infinite;
+}
+
+.phase-step.complete .phase-icon {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+@keyframes phase-ping {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+}
+
+/* --- Result Cards --- */
+.result-card {
+  background: var(--panel-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 1.25rem;
+  animation: result-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.result-card:nth-child(1) { animation-delay: 0ms; }
+.result-card:nth-child(2) { animation-delay: 80ms; }
+.result-card:nth-child(3) { animation-delay: 160ms; }
+.result-card:nth-child(4) { animation-delay: 240ms; }
+
+@keyframes result-slide-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Decision badge */
+.decision-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.decision-badge.yes {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--green);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.decision-badge.no {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--red);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.decision-badge.inconclusive {
+  background: rgba(250, 204, 21, 0.12);
+  color: var(--yellow);
+  border: 1px solid rgba(250, 204, 21, 0.2);
+}
+
+/* --- Arguments List --- */
+.argument-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: background 0.15s ease;
+}
+
+.argument-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.argument-item .bullet {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-top: 6px;
+}
+
+.argument-item.for .bullet  { background: var(--green); box-shadow: 0 0 4px rgba(74, 222, 128, 0.3); }
+.argument-item.against .bullet { background: var(--red); box-shadow: 0 0 4px rgba(248, 113, 113, 0.3); }
+
+/* --- Transitions --- */
+.fade-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Smooth collapse */
+.collapse {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collapse.open {
+  max-height: 1000px;
+}
+
+/* --- History Sidebar --- */
+.history-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-left: 2px solid transparent;
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.history-item.active {
+  background: rgba(99, 102, 241, 0.08);
+  border-left-color: var(--accent);
+}
+
+/* --- Button Glow --- */
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-glow::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--accent-glow), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.btn-glow:hover::after {
+  opacity: 1;
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}

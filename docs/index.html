@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AskElira — Visual Swarm Intelligence for Developers</title>
+  <meta name="description" content="10,000-agent swarm debates for better decisions. Open source, self-hostable, and transparent pricing.">
+  <meta name="keywords" content="swarm intelligence, AI agents, multi-agent, decision making, open source">
+  <meta property="og:title" content="AskElira — Visual Swarm Intelligence">
+  <meta property="og:description" content="10,000-agent swarm debates for better decisions. Free and open source.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://askelira.com">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Swarm Animation Canvas -->
+  <canvas id="swarm-canvas"></canvas>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="logo-icon">&#x2B22;</span> AskElira
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#self-host">Self-Host</a>
+        <a href="https://github.com/askelira/askelira" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="nav-actions">
+        <a href="mailto:hello@askelira.com?subject=Try%20AskElira%20Free" class="btn btn-sm btn-primary">Try Free</a>
+      </div>
+      <button class="nav-toggle" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">Open Source &middot; MIT Licensed</div>
+      <h1 class="hero-title">
+        <span class="gradient-text">10,000 AI Agents</span><br>
+        Debating Your Decisions
+      </h1>
+      <p class="hero-subtitle">
+        AskElira runs visual swarm debates — thousands of agents research, argue, audit, and synthesize
+        to deliver high-confidence answers. Self-host free or use our managed service.
+      </p>
+      <div class="hero-actions">
+        <a href="mailto:hello@askelira.com?subject=Try%20AskElira%20Free" class="btn btn-lg btn-primary">
+          Try Free &rarr;
+        </a>
+        <a href="https://github.com/askelira/askelira" target="_blank" rel="noopener" class="btn btn-lg btn-ghost">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          Self-Host Free
+        </a>
+      </div>
+      <div class="hero-terminal">
+        <div class="terminal-bar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+          <span class="terminal-title">Terminal</span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line"><span class="terminal-prompt">$</span> npm install -g askelira</div>
+          <div class="terminal-line"><span class="terminal-prompt">$</span> askelira config set brave_key YOUR_KEY</div>
+          <div class="terminal-line"><span class="terminal-prompt">$</span> askelira swarm "Should we migrate to microservices?"</div>
+          <div class="terminal-line terminal-output">
+            <span class="terminal-agent alba">Alba</span> Researching 2,847 sources...
+          </div>
+          <div class="terminal-line terminal-output">
+            <span class="terminal-agent david">David</span> Running 10,000-agent debate...
+          </div>
+          <div class="terminal-line terminal-output">
+            <span class="terminal-agent vex">Vex</span> Auditing for bias &amp; blind spots...
+          </div>
+          <div class="terminal-line terminal-output">
+            <span class="terminal-agent elira">Elira</span> Synthesizing final decision...
+          </div>
+          <div class="terminal-line terminal-result">
+            &#x2713; Decision: <strong>Proceed with gradual migration</strong> (Confidence: 87%)
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Why Teams Choose AskElira</h2>
+        <p class="section-subtitle">A 4-phase intelligence pipeline that turns complex questions into confident decisions</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card glass">
+          <div class="feature-icon">&#x1F50D;</div>
+          <h3>Deep Research</h3>
+          <p>Alba agent queries multiple sources, synthesizes findings, and identifies key factors before any debate begins.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">&#x2694;</div>
+          <h3>Swarm Debates</h3>
+          <p>David orchestrates up to 10,000 agents arguing for and against — surfacing arguments humans miss.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">&#x1F6E1;</div>
+          <h3>Bias Auditing</h3>
+          <p>Vex audits every debate for cognitive biases, logical fallacies, and blind spots before conclusions are drawn.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">&#x2728;</div>
+          <h3>Smart Synthesis</h3>
+          <p>Elira synthesizes all phases into a final decision with confidence scores, key arguments, and action items.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">&#x1F4CA;</div>
+          <h3>Visual Dashboard</h3>
+          <p>Watch swarm debates unfold in real-time with particle animations, live agent counts, and phase transitions.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">&#x1F4B0;</div>
+          <h3>Transparent Costs</h3>
+          <p>Every debate shows exact API costs. Self-host for ~$0.007 per 1,000 agents. No hidden fees, ever.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section id="how-it-works" class="section section-dark">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">The 4-Phase Pipeline</h2>
+        <p class="section-subtitle">Every question flows through four specialized AI agents</p>
+      </div>
+      <div class="pipeline">
+        <div class="pipeline-step">
+          <div class="pipeline-number">1</div>
+          <div class="pipeline-content glass">
+            <h3><span class="agent-badge alba">Alba</span> Research</h3>
+            <p>Queries Brave Search, synthesizes findings across thousands of sources, identifies key decision factors and context.</p>
+          </div>
+        </div>
+        <div class="pipeline-arrow">&darr;</div>
+        <div class="pipeline-step">
+          <div class="pipeline-number">2</div>
+          <div class="pipeline-content glass">
+            <h3><span class="agent-badge david">David</span> Debate</h3>
+            <p>Orchestrates thousands of agents in a structured debate. Pro vs. con arguments are weighted, scored, and ranked.</p>
+          </div>
+        </div>
+        <div class="pipeline-arrow">&darr;</div>
+        <div class="pipeline-step">
+          <div class="pipeline-number">3</div>
+          <div class="pipeline-content glass">
+            <h3><span class="agent-badge vex">Vex</span> Audit</h3>
+            <p>Scans debate results for cognitive biases, logical fallacies, missing perspectives, and unsupported claims.</p>
+          </div>
+        </div>
+        <div class="pipeline-arrow">&darr;</div>
+        <div class="pipeline-step">
+          <div class="pipeline-number">4</div>
+          <div class="pipeline-content glass">
+            <h3><span class="agent-badge elira">Elira</span> Synthesis</h3>
+            <p>Produces the final decision with confidence score, key arguments for and against, risk factors, and next steps.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Simple, Transparent Pricing</h2>
+        <p class="section-subtitle">Start free. Scale when you're ready. Pay only for what you use.</p>
+      </div>
+      <div class="pricing-grid">
+        <!-- Free Self-Hosted -->
+        <div class="pricing-card glass">
+          <div class="pricing-tier">Free</div>
+          <div class="pricing-label">Self-Hosted</div>
+          <div class="pricing-price">$0<span>/forever</span></div>
+          <ul class="pricing-features">
+            <li>&#x2713; Unlimited agents</li>
+            <li>&#x2713; Unlimited debates</li>
+            <li>&#x2713; All features included</li>
+            <li>&#x2713; Full source code (MIT)</li>
+            <li>&#x2713; Bring your own API keys</li>
+            <li>&#x2713; ~$0.007 per 1k agents</li>
+          </ul>
+          <a href="https://github.com/askelira/askelira" target="_blank" rel="noopener" class="btn btn-outline btn-block">Clone &amp; Deploy</a>
+        </div>
+
+        <!-- Managed Free -->
+        <div class="pricing-card glass">
+          <div class="pricing-tier">Free</div>
+          <div class="pricing-label">Managed</div>
+          <div class="pricing-price">$0<span>/month</span></div>
+          <ul class="pricing-features">
+            <li>&#x2713; 1,000 agents per debate</li>
+            <li>&#x2713; 10 debates per month</li>
+            <li>&#x2713; Hosted — no setup</li>
+            <li>&#x2713; We cover API costs</li>
+            <li>&#x2713; Web dashboard</li>
+            <li>&#x2713; Community support</li>
+          </ul>
+          <a href="mailto:hello@askelira.com?subject=Try%20AskElira%20Free" class="btn btn-outline btn-block">Get Started</a>
+        </div>
+
+        <!-- Pro -->
+        <div class="pricing-card glass pricing-featured">
+          <div class="pricing-badge">Most Popular</div>
+          <div class="pricing-tier">Pro</div>
+          <div class="pricing-label">For Teams</div>
+          <div class="pricing-price">$20<span>/month</span></div>
+          <ul class="pricing-features">
+            <li>&#x2713; 10,000 agents per debate</li>
+            <li>&#x2713; 20 debates included <span class="pricing-tooltip" title="Additional debates $0.80 each. Unused debates roll over (max 40).">&#x24D8;</span></li>
+            <li>&#x2713; Overages: $0.80/debate</li>
+            <li>&#x2713; Priority processing</li>
+            <li>&#x2713; API keys included</li>
+            <li>&#x2713; All templates</li>
+            <li>&#x2713; Semantic memory search</li>
+          </ul>
+          <a href="mailto:hello@askelira.com?subject=AskElira%20Pro%20Signup" class="btn btn-primary btn-block">Start Pro Trial</a>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="pricing-card glass">
+          <div class="pricing-tier">Enterprise</div>
+          <div class="pricing-label">Custom</div>
+          <div class="pricing-price">$200<span>/month</span></div>
+          <ul class="pricing-features">
+            <li>&#x2713; 100,000 agents per debate</li>
+            <li>&#x2713; 25 debates included <span class="pricing-tooltip" title="Additional debates $8 each. Unused debates roll over (max 50).">&#x24D8;</span></li>
+            <li>&#x2713; Overages: $8/debate</li>
+            <li>&#x2713; Scales to 1M agents <span class="pricing-tooltip" title="1M-agent debates available at $80/debate for critical decisions.">&#x24D8;</span></li>
+            <li>&#x2713; White-label + custom agents</li>
+            <li>&#x2713; SLA guarantee</li>
+            <li>&#x2713; Dedicated support</li>
+          </ul>
+          <a href="mailto:hello@askelira.com?subject=AskElira%20Enterprise" class="btn btn-outline btn-block">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Self-Host vs Managed -->
+  <section id="self-host" class="section section-dark">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Self-Host vs Managed</h2>
+        <p class="section-subtitle">Full control or zero setup — your choice</p>
+      </div>
+      <div class="comparison-table glass">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Self-Hosted (Free)</th>
+              <th>Managed Service</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Setup Time</td>
+              <td>~5 minutes</td>
+              <td>Instant</td>
+            </tr>
+            <tr>
+              <td>Infrastructure</td>
+              <td>Your servers</td>
+              <td>We handle it</td>
+            </tr>
+            <tr>
+              <td>API Keys</td>
+              <td>Bring your own</td>
+              <td>Included (Pro+)</td>
+            </tr>
+            <tr>
+              <td>Agent Limit</td>
+              <td>Unlimited</td>
+              <td>By plan</td>
+            </tr>
+            <tr>
+              <td>Data Privacy</td>
+              <td>100% on your servers</td>
+              <td>Encrypted at rest</td>
+            </tr>
+            <tr>
+              <td>Updates</td>
+              <td>npm update</td>
+              <td>Automatic</td>
+            </tr>
+            <tr>
+              <td>Cost per 1k Agents</td>
+              <td>~$0.007 (API only)</td>
+              <td>Included in plan</td>
+            </tr>
+            <tr>
+              <td>Support</td>
+              <td>Community / GitHub</td>
+              <td>Email / Dedicated</td>
+            </tr>
+            <tr>
+              <td>Source Code</td>
+              <td>Full access (MIT)</td>
+              <td>Full access (MIT)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Demo Section -->
+  <section id="demo" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">See It In Action</h2>
+        <p class="section-subtitle">Real decisions, real swarm debates</p>
+      </div>
+      <div class="demo-grid">
+        <div class="demo-card glass">
+          <div class="demo-tag">Trading</div>
+          <h3>"Should we increase our BTC allocation?"</h3>
+          <div class="demo-stats">
+            <span>5,000 agents</span>
+            <span>87% confidence</span>
+            <span>$0.035 cost</span>
+          </div>
+          <p class="demo-result">Decision: Hold current allocation with stop-loss adjustment</p>
+        </div>
+        <div class="demo-card glass">
+          <div class="demo-tag">Engineering</div>
+          <h3>"Migrate from monolith to microservices?"</h3>
+          <div class="demo-stats">
+            <span>10,000 agents</span>
+            <span>72% confidence</span>
+            <span>$0.070 cost</span>
+          </div>
+          <p class="demo-result">Decision: Gradual strangler fig pattern over 6 months</p>
+        </div>
+        <div class="demo-card glass">
+          <div class="demo-tag">Hiring</div>
+          <h3>"Senior React dev vs. Full-stack generalist?"</h3>
+          <div class="demo-stats">
+            <span>3,000 agents</span>
+            <span>91% confidence</span>
+            <span>$0.021 cost</span>
+          </div>
+          <p class="demo-result">Decision: Full-stack generalist for current team stage</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section section-cta">
+    <div class="container">
+      <h2 class="cta-title">Ready to Make Better Decisions?</h2>
+      <p class="cta-subtitle">Join developers using swarm intelligence to cut through complexity.</p>
+      <div class="cta-actions">
+        <a href="mailto:hello@askelira.com?subject=Try%20AskElira%20Free" class="btn btn-lg btn-white">Try Free &rarr;</a>
+        <a href="https://github.com/askelira/askelira" target="_blank" rel="noopener" class="btn btn-lg btn-ghost-light">View on GitHub</a>
+      </div>
+      <div class="cta-note">No credit card required &middot; Self-host free forever &middot; MIT Licensed</div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo"><span class="logo-icon">&#x2B22;</span> AskElira</div>
+          <p>Visual swarm intelligence for developers. Open source, transparent, and powerful.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#demo">Demo</a>
+          <a href="https://github.com/askelira/askelira" target="_blank" rel="noopener">GitHub</a>
+        </div>
+        <div class="footer-col">
+          <h4>Docs</h4>
+          <a href="https://github.com/askelira/askelira/blob/main/docs/API.md" target="_blank" rel="noopener">API Reference</a>
+          <a href="https://github.com/askelira/askelira/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">Architecture</a>
+          <a href="https://github.com/askelira/askelira/blob/main/docs/CUSTOM_AGENTS.md" target="_blank" rel="noopener">Custom Agents</a>
+          <a href="https://github.com/askelira/askelira/blob/main/docs/DEPLOYMENT.md" target="_blank" rel="noopener">Deployment</a>
+        </div>
+        <div class="footer-col">
+          <h4>Community</h4>
+          <a href="https://github.com/askelira/askelira/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing</a>
+          <a href="https://github.com/askelira/askelira/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a>
+          <a href="https://github.com/askelira/askelira/blob/main/docs/ROADMAP.md" target="_blank" rel="noopener">Roadmap</a>
+          <a href="https://github.com/askelira/askelira/blob/main/docs/FAQ.md" target="_blank" rel="noopener">FAQ</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 AskElira. MIT License. Built with swarm intelligence.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Swarm Animation Script -->
+  <script>
+    // Particle swarm animation
+    const canvas = document.getElementById('swarm-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let animationId;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    function createParticles() {
+      particles = [];
+      const count = Math.min(120, Math.floor(window.innerWidth / 12));
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.6,
+          vy: (Math.random() - 0.5) * 0.6,
+          size: Math.random() * 2 + 1,
+          opacity: Math.random() * 0.4 + 0.1,
+          hue: Math.random() > 0.5 ? 250 : 280
+        });
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 80%, 70%, ${p.opacity})`;
+        ctx.fill();
+
+        // Draw connections
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[j].x - p.x;
+          const dy = particles[j].y - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `hsla(260, 60%, 60%, ${0.08 * (1 - dist / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      });
+
+      animationId = requestAnimationFrame(animate);
+    }
+
+    // Reduce animation when not visible
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          if (!animationId) animate();
+        } else {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
+      });
+    });
+
+    resize();
+    createParticles();
+    animate();
+    window.addEventListener('resize', () => { resize(); createParticles(); });
+    observer.observe(canvas);
+
+    // Mobile nav toggle
+    document.querySelector('.nav-toggle').addEventListener('click', function() {
+      document.querySelector('.nav-links').classList.toggle('active');
+    });
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          document.querySelector('.nav-links').classList.remove('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

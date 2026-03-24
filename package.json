@@ -1,0 +1,145 @@
+{
+  "name": "askelira",
+  "version": "2.1.0",
+  "description": "ChatGPT for Automations - AI agents that build working code",
+  "productName": "AskElira",
+  "main": "electron/main.js",
+  "bin": {
+    "askelira": "./bin/cli-ts.js",
+    "askelira-old": "./bin/cli.js",
+    "askelira-tui": "./bin/tui-dashboard.js",
+    "ask": "./bin/cli-enhanced.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "start": "node bin/cli.js start",
+    "start:ui": "node src/ui/server.js",
+    "dev": "node server.js",
+    "dev:next": "next dev",
+    "build": "next build",
+    "start:next": "node server.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "test": "node test/agents.test.js && node test/memory.test.js && node test/swarm.test.js && node test/integration.test.js",
+    "test:unit": "node test/agents.test.js && node test/memory.test.js && node test/swarm.test.js",
+    "test:integration": "node test/integration.test.js",
+    "test:coverage": "jest --coverage",
+    "lint": "next lint",
+    "format": "prettier --write \"bin/**/*.js\" \"src/**/*.js\" \"test/**/*.js\" \"electron/**/*.js\" \"public/**/*.js\" \"app/**/*.{ts,tsx}\" \"lib/**/*.ts\"",
+    "improve": "node scripts/autonomous-improve.js",
+    "deploy": "vercel --prod",
+    "db:migrate": "node scripts/migrate-all.mjs",
+    "smoke": "npx tsx scripts/smoke-test.ts",
+    "scraper:test": "npx tsx scripts/test-scraper.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
+    "@prisma/client": "^7.5.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@stripe/stripe-js": "^2.4.0",
+    "@vercel/functions": "^1.4.0",
+    "@vercel/postgres": "^0.10.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-web-links": "^0.12.0",
+    "@xterm/xterm": "^6.0.0",
+    "boxen": "^8.0.1",
+    "chalk": "^4.1.2",
+    "cli-progress": "^3.12.0",
+    "commander": "^14.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "figlet": "^1.11.0",
+    "gradient-string": "^3.0.0",
+    "gsap": "^3.14.2",
+    "html-to-text": "^9.0.5",
+    "ink": "^4.4.1",
+    "nanospinner": "^1.2.2",
+    "next": "14.2.35",
+    "next-auth": "^4.24.0",
+    "ora": "^9.3.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.3",
+    "stripe": "^20.4.1",
+    "three": "^0.183.2",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/html-to-text": "^9.0.4",
+    "@types/node": "^20.14.0",
+    "@types/prop-types": "^15.7.15",
+    "@types/react": "18.3.28",
+    "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.183.1",
+    "dotenv": "^16.4.0",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^14.2.0",
+    "nodemon": "^3.1.9",
+    "prettier": "^3.4.2",
+    "typescript": "5.9.3"
+  },
+  "peerDependencies": {
+    "node": ">=18"
+  },
+  "build": {
+    "appId": "com.askelira.app",
+    "productName": "AskElira",
+    "files": [
+      "bin/**/*",
+      "config/**/*",
+      "electron/**/*",
+      "public/**/*",
+      "src/**/*",
+      "scripts/**/*",
+      "templates/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.icns"
+    },
+    "dmg": {
+      "title": "AskElira",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  },
+  "keywords": [
+    "ai",
+    "automation",
+    "agents",
+    "claude",
+    "swarm"
+  ],
+  "homepage": "https://askelira.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askelira/askelira.git"
+  },
+  "bugs": {
+    "url": "https://github.com/askelira/askelira/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "AGPL-3.0-or-later",
+  "optionalDependencies": {
+    "@next/swc-darwin-x64": "^16.2.1"
+  }
+}

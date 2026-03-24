@@ -1,0 +1,89 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+const RATE_LIMIT_WINDOW = 60_000; // 1 minute
+// Local development: 1000 req/min, Production: 100 req/min
+const MAX_REQUESTS = process.env.NODE_ENV === 'development' ? 1000 : 100;
+
+const requestLog = new Map<string, number[]>();
+
+// Auto-cleanup stale entries every 5 minutes to prevent memory leaks.
+// On Vercel Edge this is short-lived anyway, but on the custom server.js
+// (local dev / self-hosted) the Map could grow without bound.
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+let cleanupTimer: ReturnType<typeof setInterval> | null = null;
+
+function ensureCleanup(): void {
+  if (cleanupTimer) return;
+  cleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, timestamps] of requestLog) {
+      const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW);
+      if (recent.length === 0) {
+        requestLog.delete(ip);
+      } else {
+        requestLog.set(ip, recent);
+      }
+    }
+  }, CLEANUP_INTERVAL_MS);
+  // Unref so it doesn't keep Node.js alive
+  if (cleanupTimer && typeof cleanupTimer === 'object' && 'unref' in cleanupTimer) {
+    (cleanupTimer as NodeJS.Timeout).unref();
+  }
+}
+
+export function middleware(req: NextRequest) {
+  // Only rate-limit API routes
+  if (!req.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
+  // Skip auth routes
+  if (req.nextUrl.pathname.startsWith('/api/auth/')) {
+    return NextResponse.next();
+  }
+
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    req.headers.get('x-real-ip') ??
+    'unknown';
+
+  // Skip rate limiting for localhost
+  if (ip === '127.0.0.1' || ip === 'localhost' || ip === '::1' || ip === 'unknown') {
+    return NextResponse.next();
+  }
+
+  ensureCleanup();
+
+  const now = Date.now();
+  const timestamps = requestLog.get(ip) ?? [];
+
+  // Prune entries outside the window
+  const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW);
+
+  if (recent.length >= MAX_REQUESTS) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait a moment.' },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': String(MAX_REQUESTS),
+          'X-RateLimit-Remaining': '0',
+          'Retry-After': '60',
+        },
+      },
+    );
+  }
+
+  recent.push(now);
+  requestLog.set(ip, recent);
+
+  const response = NextResponse.next();
+  response.headers.set('X-RateLimit-Limit', String(MAX_REQUESTS));
+  response.headers.set('X-RateLimit-Remaining', String(MAX_REQUESTS - recent.length));
+
+  return response;
+}
+
+export const config = {
+  matcher: '/api/:path*',
+};

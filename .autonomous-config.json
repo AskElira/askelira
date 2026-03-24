@@ -1,0 +1,12 @@
+{
+  "enabled": false,
+  "loopInterval": 3600000,
+  "agentCount": 10000,
+  "maxIterations": 5,
+  "allowedPaths": [
+    "src/agents/",
+    "test/",
+    "docs/"
+  ],
+  "researchQuery": "What are the latest improvements in AI multi-agent systems and swarm intelligence?"
+}

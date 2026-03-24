@@ -1,0 +1,24 @@
+{
+  "name": "product",
+  "description": "Product launch decision template with market analysis",
+  "fields": [
+    {"key": "product_name", "label": "Product Name", "type": "text", "required": true},
+    {"key": "market_size", "label": "Market Size", "type": "text", "required": true},
+    {"key": "competition", "label": "Competition Level", "type": "text", "required": true},
+    {"key": "pricing", "label": "Pricing Strategy", "type": "text", "required": true},
+    {"key": "launch_date", "label": "Target Launch Date", "type": "text", "required": true}
+  ],
+  "agents": {
+    "alba": "Market research and competitor analysis",
+    "david": "Swarm debate on product-market fit",
+    "vex": "Risk assessment and validation",
+    "elira": "Go/No-Go launch decision"
+  },
+  "question_template": "Should we launch {{product_name}} targeting {{market_size}} market with {{pricing}} pricing on {{launch_date}}?",
+  "success_metrics": [
+    "Market demand validation",
+    "Competitive positioning",
+    "Pricing viability",
+    "Launch timeline feasibility"
+  ]
+}
