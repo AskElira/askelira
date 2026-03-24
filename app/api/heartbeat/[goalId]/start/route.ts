@@ -43,6 +43,13 @@ export async function POST(
     }
 
     try {
+      // Verify ownership
+      const { getGoal } = await import('@/lib/building-manager');
+      const goal = await getGoal(goalId);
+      if (goal.customerId !== session.user.email) {
+        return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+      }
+
       const { startHeartbeat } = await import('@/lib/heartbeat');
       startHeartbeat(goalId, intervalMs);
 

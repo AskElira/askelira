@@ -42,9 +42,12 @@ export async function POST(
         );
       }
 
-      // Verify goal ownership (load goal to confirm it exists)
+      // Verify goal ownership
       try {
-        await getGoal(floor.goalId);
+        const goal = await getGoal(floor.goalId);
+        if (goal.customerId !== session.user.email) {
+          return NextResponse.json({ error: 'Floor not found' }, { status: 404 });
+        }
       } catch {
         return NextResponse.json(
           { error: 'Goal not found for this floor' },

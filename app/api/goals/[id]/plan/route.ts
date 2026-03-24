@@ -49,6 +49,11 @@ export async function POST(
         throw err;
       }
 
+      // Verify ownership
+      if (goal.customerId !== session.user.email) {
+        return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+      }
+
       // Must be in 'planning' status
       if (goal.status !== 'planning') {
         return NextResponse.json(

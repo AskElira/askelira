@@ -23,7 +23,17 @@ export async function GET(
 
     try {
       const { getHeartbeatStatus } = await import('@/lib/heartbeat');
-      const { getRecentLogs } = await import('@/lib/building-manager');
+      const { getRecentLogs, getGoal } = await import('@/lib/building-manager');
+
+      // Verify ownership
+      try {
+        const goal = await getGoal(goalId);
+        if (goal.customerId !== session.user.email) {
+          return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+      }
 
       const status = getHeartbeatStatus(goalId);
 
@@ -101,7 +111,17 @@ export async function POST(
 
     try {
       const { checkFloor } = await import('@/lib/heartbeat');
-      const { getLiveFloors } = await import('@/lib/building-manager');
+      const { getLiveFloors, getGoal: getGoalForPost } = await import('@/lib/building-manager');
+
+      // Verify ownership
+      try {
+        const goal = await getGoalForPost(goalId);
+        if (goal.customerId !== session.user.email) {
+          return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+      }
 
       const liveFloors = await getLiveFloors(goalId);
 

@@ -22,7 +22,7 @@ export async function GET(
     }
 
     try {
-      const { getFloorSnapshots, getFloor } = await import(
+      const { getFloorSnapshots, getFloor, getGoal } = await import(
         '@/lib/building-manager'
       );
 
@@ -33,6 +33,12 @@ export async function GET(
           { error: 'Floor not found' },
           { status: 404 },
         );
+      }
+
+      // Verify ownership via goal
+      const goal = await getGoal(floor.goalId);
+      if (goal.customerId !== session.user.email) {
+        return NextResponse.json({ error: 'Floor not found' }, { status: 404 });
       }
 
       const snapshots = await getFloorSnapshots(floorId);

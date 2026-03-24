@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 // Force dynamic to prevent any response caching
 export const dynamic = 'force-dynamic';
@@ -9,6 +11,11 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const goalId = params.id;
 
     if (!goalId) {
@@ -22,6 +29,11 @@ export async function GET(
       const { getGoal, getRecentLogs, getStevenSuggestions, getPendingExpansions } = await import('@/lib/building-manager');
 
       const goal = await getGoal(goalId);
+
+      // Verify ownership
+      if (goal.customerId !== session.user.email) {
+        return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+      }
       const recentLogs = await getRecentLogs(goalId, 20);
 
       // Phase 5: Steven's automation suggestions

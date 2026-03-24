@@ -33,6 +33,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (goalText.length > 5000) {
+      return NextResponse.json(
+        { error: 'goalText must be 5000 characters or fewer' },
+        { status: 400 },
+      );
+    }
+
     // Try DB, return error if unavailable
     try {
       const { createGoal } = await import('@/lib/building-manager');

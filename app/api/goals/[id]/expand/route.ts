@@ -41,6 +41,13 @@ export async function POST(
       );
     }
 
+    if (name.length > 200 || description.length > 5000 || successCondition.length > 2000) {
+      return NextResponse.json(
+        { error: 'Field length exceeded: name (200), description (5000), successCondition (2000)' },
+        { status: 400 },
+      );
+    }
+
     try {
       const {
         getGoal,
@@ -58,6 +65,11 @@ export async function POST(
           return NextResponse.json({ error: message }, { status: 404 });
         }
         throw err;
+      }
+
+      // Verify ownership
+      if (goal.customerId !== session.user.email) {
+        return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
       }
 
       // Goal must be in 'building' or 'goal_met' status
