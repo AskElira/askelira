@@ -241,6 +241,7 @@ SPEED OPTIMIZATION RULES:
 4. List only TOP 2-3 risks (not exhaustive list)
 5. Skip deep research - use common knowledge when possible
 6. Prefer simple, well-known solutions over complex ones
+7. Include a "confidenceScore" (0-100) indicating how confident you are in this research
 
 CRITICAL: You MUST respond with ONLY a raw JSON object. Do NOT use markdown code fences, do NOT add explanatory text before or after the JSON. Your entire response must be parseable as JSON.
 
@@ -251,7 +252,8 @@ Output valid JSON matching this schema:
   "libraries": ["lib1", "lib2"],
   "risks": ["top risk 1", "top risk 2"],
   "sources": ["url1", "url2"],
-  "complexity": 1-10
+  "complexity": 1-10,
+  "confidenceScore": 0-100
 }
 
 Return ONLY the JSON object, nothing else.`;
@@ -290,6 +292,7 @@ SPEED OPTIMIZATION RULES:
 5. Self-audit in 2-3 sentences MAX
 6. Handoff notes in 1-2 sentences MAX
 7. Focus on WORKING code, not perfect code
+8. Include source URLs in comments where you referenced external documentation or APIs
 
 CRITICAL: You MUST respond with ONLY a raw JSON object. Do NOT use markdown code fences, do NOT add explanatory text before or after the JSON. Your entire response must be parseable as JSON.
 

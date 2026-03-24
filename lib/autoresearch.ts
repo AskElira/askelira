@@ -247,7 +247,7 @@ async function performResearch(
     } else if (searchApi === 'brave' && (searchKey || process.env.BRAVE_SEARCH_API_KEY)) {
       webResults = await braveWebSearch({ query, count: 5, freshness: 'month' });
     } else if (searchApi === 'duckduckgo') {
-      // DuckDuckGo has no API — try Tavily or Brave as fallback
+      // DuckDuckGo has no API -- try Tavily or Brave as fallback
       if (process.env.TAVILY_API_KEY) {
         webResults = await tavilySearch({ query, count: 5, freshness: 'month' });
       } else if (process.env.BRAVE_SEARCH_API_KEY) {
@@ -256,6 +256,30 @@ async function performResearch(
     }
   } catch (err) {
     console.warn(`[AutoResearch] Web search failed:`, err instanceof Error ? err.message : String(err));
+  }
+
+  // Feature 18: Query expansion if zero results
+  if (webResults.length === 0) {
+    const expandedQueries = [
+      query.replace(/["']/g, ''), // remove quotes
+      query.split(' ').slice(0, 4).join(' ') + ' guide tutorial', // broaden terms
+    ];
+    for (const altQuery of expandedQueries) {
+      console.log(`[AutoResearch] Expanding query: "${altQuery}"`);
+      try {
+        if (process.env.TAVILY_API_KEY) {
+          webResults = await tavilySearch({ query: altQuery, count: 5, freshness: 'month' });
+        } else if (process.env.BRAVE_SEARCH_API_KEY) {
+          webResults = await braveWebSearch({ query: altQuery, count: 5, freshness: 'month' });
+        }
+        if (webResults.length > 0) {
+          console.log(`[AutoResearch] Query expansion succeeded with ${webResults.length} results`);
+          break;
+        }
+      } catch {
+        // continue to next expansion
+      }
+    }
   }
 
   // Build sources from real results

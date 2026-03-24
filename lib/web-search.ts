@@ -197,47 +197,164 @@ export async function tavilySearch(options: WebSearchOptions): Promise<SearchRes
   }
 }
 
+// ============================================================
+// Feature 11: Deduplication by URL
+// ============================================================
+
+function deduplicateResults(results: SearchResult[]): SearchResult[] {
+  const seen = new Set<string>();
+  return results.filter((r) => {
+    const normalized = r.url.replace(/\/+$/, '').toLowerCase();
+    if (seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
+// ============================================================
+// Feature 12: Relevance scoring by keyword overlap
+// ============================================================
+
+function scoreResults(results: SearchResult[], query: string): SearchResult[] {
+  const queryWords = new Set(query.toLowerCase().split(/\s+/).filter((w) => w.length > 2));
+  return results
+    .map((r) => {
+      const text = `${r.title} ${r.snippet}`.toLowerCase();
+      let score = 0;
+      for (const word of queryWords) {
+        if (text.includes(word)) score++;
+      }
+      return { ...r, relevanceScore: queryWords.size > 0 ? score / queryWords.size : 0 };
+    })
+    .sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+}
+
+// ============================================================
+// Feature 17: Stale result detection
+// ============================================================
+
+function flagStaleResults(results: SearchResult[]): SearchResult[] {
+  const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  return results.map((r) => {
+    const dateMatch = r.snippet.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
+    if (dateMatch) {
+      const date = new Date(`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`);
+      if (date.getTime() < ninetyDaysAgo) {
+        console.warn(`[WebSearch] Stale result detected (${dateMatch[0]}): ${r.url}`);
+        return { ...r, stale: true } as SearchResult & { stale: boolean };
+      }
+    }
+    return r;
+  });
+}
+
+// ============================================================
+// Feature 19: In-memory search result cache (1hr TTL)
+// ============================================================
+
+const searchCache = new Map<string, { results: SearchResult[]; timestamp: number }>();
+const SEARCH_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function getCachedResults(query: string): SearchResult[] | null {
+  const entry = searchCache.get(query.toLowerCase().trim());
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > SEARCH_CACHE_TTL_MS) {
+    searchCache.delete(query.toLowerCase().trim());
+    return null;
+  }
+  return entry.results;
+}
+
+function setCachedResults(query: string, results: SearchResult[]): void {
+  searchCache.set(query.toLowerCase().trim(), { results, timestamp: Date.now() });
+}
+
 /**
  * Generic web search that tries available providers in order.
  * When provider is 'auto' (default), tries Brave -> Tavily -> Perplexity based on available keys.
+ *
+ * Features 11-14, 17, 19: Deduplication, scoring, fallback chain logging, stale detection, caching.
  */
 export async function webSearch(options: WebSearchOptions): Promise<SearchResult[]> {
+  // Feature 19: Check cache first
+  const cached = getCachedResults(options.query);
+  if (cached) {
+    console.log(`[WebSearch] Cache hit for: "${options.query.slice(0, 60)}..." (${cached.length} results)`);
+    return cached;
+  }
+
   const provider = options.provider || process.env.SEARCH_PROVIDER || 'auto';
+  let results: SearchResult[] = [];
+  let usedProvider = 'none';
 
   // Explicit provider selection
   if (provider === 'brave') {
-    return braveSearch(options);
-  }
-  if (provider === 'tavily') {
-    return tavilySearch(options);
-  }
-  if (provider === 'perplexity') {
-    return perplexitySearch(options);
-  }
+    console.log(`[WebSearch] Trying Brave (explicit)`); // Feature 14
+    results = await braveSearch(options);
+    usedProvider = 'brave';
+  } else if (provider === 'tavily') {
+    console.log(`[WebSearch] Trying Tavily (explicit)`); // Feature 14
+    results = await tavilySearch(options);
+    usedProvider = 'tavily';
+  } else if (provider === 'perplexity') {
+    console.log(`[WebSearch] Trying Perplexity (explicit)`); // Feature 14
+    results = await perplexitySearch(options);
+    usedProvider = 'perplexity';
+  } else {
+    // Auto mode: try providers in order based on available keys
+    if (process.env.BRAVE_SEARCH_API_KEY) {
+      console.log(`[WebSearch] Trying Brave (auto)`); // Feature 14
+      results = await braveSearch(options);
+      usedProvider = 'brave';
+      console.log(`[WebSearch] Brave returned ${results.length} results`); // Feature 14
+    }
 
-  // Auto mode: try providers in order based on available keys
-  if (process.env.BRAVE_SEARCH_API_KEY) {
-    const results = await braveSearch(options);
-    if (results.length > 0) {
-      return results;
+    if (results.length === 0 && process.env.TAVILY_API_KEY) {
+      console.log(`[WebSearch] Trying Tavily (${usedProvider === 'brave' ? 'fallback' : 'auto'})`); // Feature 14
+      results = await tavilySearch(options);
+      usedProvider = 'tavily';
+      console.log(`[WebSearch] Tavily returned ${results.length} results`); // Feature 14
+    }
+
+    if (results.length === 0 && process.env.PERPLEXITY_API_KEY) {
+      console.log(`[WebSearch] Trying Perplexity (fallback)`); // Feature 14
+      results = await perplexitySearch(options);
+      usedProvider = 'perplexity';
     }
   }
 
-  // Try Tavily second
-  if (process.env.TAVILY_API_KEY) {
-    const results = await tavilySearch(options);
-    if (results.length > 0) {
-      return results;
-    }
+  // Feature 13: Minimum result enforcement — if < 3, try supplement
+  if (results.length > 0 && results.length < 3 && usedProvider === 'tavily' && process.env.BRAVE_SEARCH_API_KEY) {
+    console.log(`[WebSearch] Only ${results.length} results from Tavily, supplementing with Brave`);
+    const supplementResults = await braveSearch(options);
+    results = [...results, ...supplementResults];
+  } else if (results.length > 0 && results.length < 3 && usedProvider === 'brave' && process.env.TAVILY_API_KEY) {
+    console.log(`[WebSearch] Only ${results.length} results from Brave, supplementing with Tavily`);
+    const supplementResults = await tavilySearch(options);
+    results = [...results, ...supplementResults];
   }
 
-  // Fallback to Perplexity
-  if (process.env.PERPLEXITY_API_KEY) {
-    return await perplexitySearch(options);
+  if (results.length === 0) {
+    console.warn('[WebSearch] No search API configured or no results - agents running offline');
+    return [];
   }
 
-  console.warn('[WebSearch] No search API configured - agents running offline');
-  return [];
+  // Feature 11: Deduplication
+  results = deduplicateResults(results);
+
+  // Feature 12: Relevance scoring
+  results = scoreResults(results, options.query);
+
+  // Feature 17: Stale result detection
+  results = flagStaleResults(results);
+
+  // Feature 14: Final log
+  console.log(`[WebSearch] Final: ${results.length} results via ${usedProvider}`);
+
+  // Feature 19: Cache results
+  setCachedResults(options.query, results);
+
+  return results;
 }
 
 /**
