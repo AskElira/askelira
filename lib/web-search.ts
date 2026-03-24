@@ -49,13 +49,19 @@ export async function braveSearch(options: WebSearchOptions): Promise<SearchResu
     });
 
     if (!response.ok) {
-      console.error('[WebSearch] Brave API error:', response.status);
+      // [AUTO-ADDED] BUG-1-08: Log response body to diagnose expired keys / rate limits.
+      const errBody = await response.text().catch(() => '');
+      console.error(`[WebSearch] Brave API error (${response.status}): ${errBody.slice(0, 300)}`);
       return [];
     }
 
     const data = await response.json() as any;
 
     if (!data.web?.results) {
+      // [AUTO-ADDED] BUG-1-08: Log when 200 OK has no web.results (rate limit / error payload).
+      if (data.query || data.mixed) {
+        console.warn('[WebSearch] Brave API returned 200 but no web.results. Keys in response:', Object.keys(data).join(', '));
+      }
       return [];
     }
 

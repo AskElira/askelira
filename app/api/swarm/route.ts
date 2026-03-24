@@ -5,6 +5,8 @@ import { cacheSet } from '@/lib/swarm-cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { checkUsage, getTierForEmail } from '@/lib/tiers';
+// [AUTO-ADDED] BUG-1-09: Rate limit unauthenticated swarm requests
+import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 
 async function getUserUsageData(email: string) {
   try {
@@ -97,7 +99,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // No session — run without rate limiting (unauthenticated)
+    // No session — rate limit by IP to prevent credit abuse
+    // [AUTO-ADDED] BUG-1-09: Unauthenticated users get 3 debates/hour per IP.
+    // Each debate costs ~$0.024 in LLM calls. Without this, attackers can
+    // burn API credits at $86.40/hour per thread.
+    const ip = getClientIp(req.headers);
+    const anonRateCheck = checkRateLimit(`swarm_anon:${ip}`, 3, 3600000);
+    if (!anonRateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Sign in for higher limits.' },
+        { status: 429 },
+      );
+    }
+
     if (stream) {
       const encoder = new TextEncoder();
       const readable = new ReadableStream({

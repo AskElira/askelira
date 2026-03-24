@@ -70,7 +70,9 @@ app.prepare().then(() => {
     const goalId = socket.handshake.query.goalId;
     console.log(`[Socket.io] Client connected: ${socket.id}`, goalId ? `for goal: ${goalId}` : '');
 
-    if (goalId) {
+    // [AUTO-ADDED] BUG-1-07: Validate goalId from handshake query before joining room.
+    // The subscribe handler validates UUID format, but the initial connect path did not.
+    if (goalId && typeof goalId === 'string' && UUID_RE.test(goalId)) {
       // Join room for this specific building/goal
       const roomName = `building:${goalId}`;
       socket.join(roomName);

@@ -542,7 +542,10 @@ export class GatewayClient extends EventEmitter {
     } catch (err) {
       const duration = Date.now() - startTime;
       console.error(`[Gateway] ${label} failed via gateway (${duration}ms):`, err instanceof Error ? err.message : String(err));
-      this.recordFailure();
+      // [AUTO-ADDED] BUG-1-01: Do NOT call recordFailure() here.
+      // The inner promise (timeout handler or error listener) already called
+      // recordFailure(). Calling it again double-counts failures, tripping the
+      // circuit breaker at half the configured threshold.
       throw err;
     }
   }
@@ -590,11 +593,14 @@ export class GatewayClient extends EventEmitter {
 
     this.reconnectTimer = setTimeout(async () => {
       this.reconnectAttempts++;
+      // [AUTO-ADDED] BUG-1-06: Reset reconnecting flag BEFORE calling connect()
+      // so the close handler's scheduleReconnect() call is not blocked if connect()
+      // throws synchronously or the close event fires before the catch block.
+      this.reconnecting = false;
       try {
         await this.connect();
       } catch (err) {
         console.error('[Gateway] Reconnect failed:', err instanceof Error ? err.message : String(err));
-        this.reconnecting = false;
         this.scheduleReconnect();
       }
     }, delay);

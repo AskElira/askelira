@@ -376,6 +376,11 @@ Create a well-structured, detailed report that:
 /**
  * Call LLM (Anthropic or OpenAI)
  */
+// [AUTO-ADDED] BUG-1-05: Cache Anthropic SDK client to reuse HTTP connections
+// across multiple callLLM invocations within the same research run.
+let _anthropicClient: any = null;
+let _anthropicClientKey: string = '';
+
 async function callLLM(
   prompt: string,
   provider: string,
@@ -384,10 +389,14 @@ async function callLLM(
   maxTokens: number
 ): Promise<string> {
   if (provider === 'anthropic') {
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const anthropic = new Anthropic({ apiKey });
+    // Reuse client if apiKey hasn't changed
+    if (!_anthropicClient || _anthropicClientKey !== apiKey) {
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      _anthropicClient = new Anthropic({ apiKey });
+      _anthropicClientKey = apiKey;
+    }
 
-    const response = await anthropic.messages.create({
+    const response = await _anthropicClient.messages.create({
       model,
       max_tokens: maxTokens,
       messages: [{ role: 'user', content: prompt }],
@@ -396,21 +405,29 @@ async function callLLM(
     return response.content[0].type === 'text' ? response.content[0].text : '';
   } else {
     // OpenAI (using Next.js global fetch)
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: maxTokens,
-      }),
-    });
+    // [AUTO-ADDED] BUG-1-05: Add 60s timeout to OpenAI fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60_000);
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: maxTokens,
+        }),
+        signal: controller.signal,
+      });
 
-    const data: any = await response.json();
-    return data.choices?.[0]?.message?.content || '';
+      const data: any = await response.json();
+      return data.choices?.[0]?.message?.content || '';
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 }
 

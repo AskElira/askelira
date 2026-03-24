@@ -484,6 +484,10 @@ export async function getRecentHeartbeats(
 }
 
 export async function resetFloor(floorId: string): Promise<void> {
+  // [AUTO-ADDED] BUG-1-10: Also clear pattern_validation_report,
+  // risk_analysis_report, and swarm_validation_report so stale
+  // validation data from a previous iteration doesn't leak into
+  // David's prediction prompt on the next build cycle.
   await sql`
     UPDATE floors
     SET
@@ -493,6 +497,9 @@ export async function resetFloor(floorId: string): Promise<void> {
       build_output = NULL,
       vex_gate1_report = NULL,
       vex_gate2_report = NULL,
+      pattern_validation_report = NULL,
+      risk_analysis_report = NULL,
+      swarm_validation_report = NULL,
       building_context = NULL,
       handoff_notes = NULL,
       completed_at = NULL

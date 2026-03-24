@@ -161,14 +161,30 @@ export function getUserPreferences(userId: string, config: UserConfig): UserPref
 /**
  * Fetch user's build history from database
  */
+// [AUTO-ADDED] BUG-1-04: Singleton PrismaClient to prevent connection pool exhaustion.
+// Creating a new PrismaClient per call causes connection churn on Neon Postgres.
+let _prismaInstance: any = null;
+function getPrismaClient(): any {
+  if (!_prismaInstance) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const prismaModule = require('@prisma/client');
+      if (prismaModule?.PrismaClient) {
+        _prismaInstance = new prismaModule.PrismaClient();
+      }
+    } catch {
+      // Prisma not available in this context
+    }
+  }
+  return _prismaInstance;
+}
+
 export async function getUserHistory(userId: string): Promise<UserHistory> {
   try {
-    // Import Prisma dynamically - may not be available in CLI context
-    const prismaModule = await import('@prisma/client') as any;
-    if (!prismaModule || !prismaModule.PrismaClient) {
+    const prisma = getPrismaClient();
+    if (!prisma) {
       throw new Error('Prisma not available in this context');
     }
-    const prisma = new prismaModule.PrismaClient();
 
     // Fetch user's goals
     const goals = await prisma.goal.findMany({
@@ -188,8 +204,6 @@ export async function getUserHistory(userId: string): Promise<UserHistory> {
         },
       },
     });
-
-    await prisma.$disconnect();
 
     const totalBuilds = goals.length;
     const successfulBuilds = goals.filter((g: any) => g.status === 'goal_met').length;
