@@ -1,5 +1,10 @@
 # AskElira 2.1
 
+[![Tests](https://github.com/askelira/askelira/actions/workflows/test.yml/badge.svg)](https://github.com/askelira/askelira/actions/workflows/test.yml)
+[![npm version](https://img.shields.io/npm/v/askelira.svg)](https://www.npmjs.com/package/askelira)
+[![License](https://img.shields.io/github/license/askelira/askelira)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+
 AskElira is an autonomous build platform that turns a plain-text goal into working code through a multi-agent pipeline. Each agent researches, builds, audits, and approves — producing verified output with zero manual intervention.
 
 ## Agent Pipeline

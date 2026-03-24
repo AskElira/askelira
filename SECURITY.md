@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 2.0.x | Yes |
+| 2.1.x | Yes |
+| 2.0.x | Security fixes only |
 | < 2.0 | No |
 
 Only the latest minor release receives security patches.
@@ -83,4 +84,6 @@ Include:
 - **No authentication on gateway or UI server.** Both services bind to localhost only. Adding network authentication is planned for v2.2 (team workspaces).
 - **Brave Search API key transmitted over HTTPS.** The key is sent as a header to the Brave API. It is not logged or stored beyond `~/.askelira/.env`.
 - **Electron auto-updater uses HTTPS.** Updates are fetched over encrypted connections via electron-updater.
-- **No server-side input validation on debate questions.** Questions are passed directly to the swarm pipeline. Ensure trusted input when exposing the API.
+- **Server-side input validation.** All user input is validated via `lib/content-validator.ts` (XSS, SQL injection, abuse patterns).
+- **Rate limiting.** Global middleware (100 req/min) + per-route limits. See `middleware.ts` and `lib/rate-limiter.ts`.
+- **HSTS enabled.** Strict-Transport-Security header set via `vercel.json`.

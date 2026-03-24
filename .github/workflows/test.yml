@@ -34,3 +34,32 @@ jobs:
 
       - name: Run swarm tests
         run: node test/swarm.test.js
+
+      - name: Run secrets scan
+        run: node scripts/scan-secrets.mjs
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Lint
+        run: npx next lint || true
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Audit dependencies
+        run: npm audit --production --audit-level=high || true
+      - name: Scan for secrets
+        run: node scripts/scan-secrets.mjs

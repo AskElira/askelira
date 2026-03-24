@@ -1,0 +1,27 @@
+# AskElira Code Owners
+# These owners will be automatically requested for review on pull requests.
+
+# Default owner for everything
+* @alvinkerremans
+
+# Core agent pipeline
+lib/step-runner.ts @alvinkerremans
+lib/heartbeat.ts @alvinkerremans
+lib/building-manager.ts @alvinkerremans
+lib/building-loop.ts @alvinkerremans
+
+# Auth and security
+lib/auth.ts @alvinkerremans
+lib/rate-limiter.ts @alvinkerremans
+lib/content-validator.ts @alvinkerremans
+middleware.ts @alvinkerremans
+
+# Infrastructure
+scripts/ @alvinkerremans
+migrations/ @alvinkerremans
+.github/workflows/ @alvinkerremans
+vercel.json @alvinkerremans
+
+# Billing
+lib/subscription-manager.ts @alvinkerremans
+app/api/billing/ @alvinkerremans
