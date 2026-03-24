@@ -34,7 +34,9 @@ export async function readTools(): Promise<string> {
 }
 
 export async function writeAgents(content: string): Promise<void> {
-  const p = path.join(getWorkspacePath(), 'AGENTS.md');
+  const dir = getWorkspacePath();
+  await fs.mkdir(dir, { recursive: true });
+  const p = path.join(dir, 'AGENTS.md');
   await fs.writeFile(p, content, 'utf-8');
 }
 
@@ -46,7 +48,9 @@ export async function readAllWorkspace(): Promise<WorkspaceFiles> {
 }
 
 export async function writeSoul(content: string): Promise<void> {
-  const p = path.join(getWorkspacePath(), 'SOUL.md');
+  const dir = getWorkspacePath();
+  await fs.mkdir(dir, { recursive: true });
+  const p = path.join(dir, 'SOUL.md');
   await fs.writeFile(p, content, 'utf-8');
 }
 

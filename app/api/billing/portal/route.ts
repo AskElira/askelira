@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Dev mode bypass
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json({
@@ -14,11 +21,13 @@ export async function POST(request: NextRequest) {
     const { stripe } = await import('@/lib/stripe');
     const { sql } = await import('@vercel/postgres');
 
-    // Find the most recent subscription with a stripe customer ID
+    // Find the most recent subscription with a stripe customer ID for THIS user
     const { rows } = await sql`
-      SELECT stripe_customer_id FROM subscriptions
-      WHERE stripe_customer_id IS NOT NULL
-      ORDER BY created_at DESC
+      SELECT s.stripe_customer_id FROM subscriptions s
+      JOIN goals g ON g.id = s.goal_id
+      WHERE s.stripe_customer_id IS NOT NULL
+        AND g.customer_id = ${session.user.email}
+      ORDER BY s.created_at DESC
       LIMIT 1
     `;
 

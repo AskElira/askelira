@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -11,6 +18,9 @@ export async function GET() {
 
   // Test API call
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -23,7 +33,10 @@ export async function GET() {
         max_tokens: 50,
         messages: [{ role: 'user', content: 'Say test' }],
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     const data = await res.json();
 

@@ -6,6 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 import {
   emitAgentAction,
   emitAgentPosition,
@@ -38,10 +41,26 @@ const AGENT_ACTIONS = [
  * Simulates agent activity for a building/goal
  * Body: { goalId: string, duration?: number }
  */
+const MAX_SIMULATION_DURATION = 300; // 5 minutes max
+
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const ip = getClientIp(req.headers);
+    const rateCheck = checkRateLimit(`simulate:${ip}`, 5, 3600000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        { status: 429 },
+      );
+    }
+
     const body = await req.json();
-    const { goalId, duration = 30 } = body;
+    const { goalId, duration: rawDuration = 30 } = body;
 
     if (!goalId) {
       return NextResponse.json(
@@ -49,6 +68,11 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const duration = Math.min(
+      Math.max(1, typeof rawDuration === 'number' ? rawDuration : 30),
+      MAX_SIMULATION_DURATION,
+    );
 
     // Start simulation
     console.log(`[Simulate] Starting activity simulation for goal: ${goalId}`);

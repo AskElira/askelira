@@ -8,11 +8,18 @@
 
 import { NextRequest } from 'next/server';
 import { readWorkspaceFile, isPathSafe } from '@/lib/workspace-paths';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: { customerId: string; path: string[] } },
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { customerId, path: pathSegments } = params;
 
   if (!customerId || !pathSegments || pathSegments.length === 0) {

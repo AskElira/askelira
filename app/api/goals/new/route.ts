@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Rate limit: 10/hour per IP
     const ip = getClientIp(req.headers);
     const rateCheck = checkRateLimit(`goals_new:${ip}`, 10, 3600000);
@@ -14,19 +21,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { goalText, customerId, customerContext } = body;
+    const { goalText, customerContext } = body;
+    // Use authenticated email as customerId to prevent impersonation
+    const customerId = session.user.email;
 
     // Validate required fields
     if (!goalText || typeof goalText !== 'string' || goalText.trim().length === 0) {
       return NextResponse.json(
         { error: 'goalText is required and must be a non-empty string' },
-        { status: 400 },
-      );
-    }
-
-    if (!customerId || typeof customerId !== 'string') {
-      return NextResponse.json(
-        { error: 'customerId is required and must be a string' },
         { status: 400 },
       );
     }
