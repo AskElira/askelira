@@ -22,7 +22,7 @@ console.log('\n=== Gateway Hardening Tests ===\n');
 
 const agentRouter = fs.readFileSync(path.join(ROOT, 'lib/agent-router.ts'), 'utf-8');
 const buildingLoop = fs.readFileSync(path.join(ROOT, 'lib/building-loop.ts'), 'utf-8');
-const stepRunner = fs.readFileSync(path.join(ROOT, 'lib/step-runner.ts'), 'utf-8');
+const steven = fs.readFileSync(path.join(ROOT, 'lib/steven.ts'), 'utf-8');
 const gatewayClient = fs.readFileSync(path.join(ROOT, 'lib/gateway-client.ts'), 'utf-8');
 const buildCmd = fs.readFileSync(path.join(ROOT, 'cli/commands/build.ts'), 'utf-8');
 const envExample = fs.readFileSync(path.join(ROOT, '.env.example'), 'utf-8');
@@ -35,8 +35,8 @@ test('2. building-loop calls ensureGatewayReady', () => {
   assert.ok(buildingLoop.includes('ensureGatewayReady'), 'Should call ensureGatewayReady');
 });
 
-test('3. step-runner calls ensureGatewayReady', () => {
-  assert.ok(stepRunner.includes('ensureGatewayReady'), 'Should call ensureGatewayReady');
+test('3. steven calls ensureGatewayReady', () => {
+  assert.ok(steven.includes('ensureGatewayReady'), 'Should call ensureGatewayReady');
 });
 
 test('4. gateway-client has PONG_TIMEOUT_MS constant', () => {
@@ -88,17 +88,17 @@ test('15. gateway-client resets shuttingDown on connect()', () => {
   assert.ok(gatewayClient.includes('this.shuttingDown = false'), 'connect() should reset shuttingDown');
 });
 
-test('16. step-runner retry delay is 5s (not 30s)', () => {
-  assert.ok(stepRunner.includes('Retrying in 5s'), 'Retry delay should be 5s for Vercel Hobby');
-  assert.ok(!stepRunner.includes('Retrying in 30s'), 'Should not have 30s retry delay');
+test('16. steven retry delay is 5s (not 30s)', () => {
+  assert.ok(steven.includes('Retrying in 5s'), 'Retry delay should be 5s for Vercel Hobby');
+  assert.ok(!steven.includes('Retrying in 30s'), 'Should not have 30s retry delay');
 });
 
-test('17. step-runner Elira step checks timeout', () => {
+test('17. steven Elira step checks timeout', () => {
   // Elira step should check timeout like all other steps
-  const start = stepRunner.indexOf('function runEliraStep');
-  const end = stepRunner.indexOf('function runFinalizeStep');
+  const start = steven.indexOf('function runEliraStep');
+  const end = steven.indexOf('function runFinalizeStep');
   assert.ok(start > 0 && end > start, 'Should find runEliraStep and runFinalizeStep');
-  const eliraBlock = stepRunner.slice(start, end);
+  const eliraBlock = steven.slice(start, end);
   assert.ok(eliraBlock.includes('checkTimeout'), 'runEliraStep should call checkTimeout');
 });
 

@@ -36,7 +36,7 @@ import {
   saveStevenSuggestion,
 } from './building-manager';
 
-import { chainNextStep } from './step-runner';
+import { chainNextStep } from './steven';
 import { BUILDING_EVENTS } from './events';
 import { getInternalBaseUrl, fetchWithRetry } from './internal-fetch';
 
@@ -634,7 +634,7 @@ async function handleRerun(floor: Floor, result: StevenResult): Promise<void> {
     reason: result.observation,
   });
 
-  // Reset floor to pending so step runner can process it
+  // Reset floor to pending so steven can process it
   await resetFloor(floor.id);
 
   // Trigger step-based re-run

@@ -168,7 +168,7 @@ async function handleCheckoutCompleted(
 
         // Start step-based building loop
         try {
-          const { chainNextStep } = await import('@/lib/step-runner');
+          const { chainNextStep } = await import('@/lib/steven');
           chainNextStep(floor1.id, 'alba', 1).catch((err: unknown) => {
             console.error(
               `[Webhook] Step chain failed for floor ${floor1.id}:`,
@@ -176,7 +176,7 @@ async function handleCheckoutCompleted(
             );
           });
         } catch {
-          // step-runner import failed
+          // steven import failed
         }
 
         // Start heartbeat after delay

@@ -109,7 +109,7 @@ test('SD-047: CODEOWNERS exists', () => {
   );
   const src = fs.readFileSync(path.join(ROOT, '.github/CODEOWNERS'), 'utf-8');
   assert.ok(src.includes('@alvinkerremans'), 'Should have owner');
-  assert.ok(src.includes('lib/step-runner.ts'), 'Should cover core files');
+  assert.ok(src.includes('lib/steven.ts'), 'Should cover core files');
 });
 
 // SD-048: Dependabot

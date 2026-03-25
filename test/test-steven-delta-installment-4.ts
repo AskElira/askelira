@@ -36,7 +36,7 @@ test('SD-031: pipeline integration test exists', () => {
     'Pipeline integration test file should exist',
   );
   const src = fs.readFileSync(path.join(ROOT, 'test/test-pipeline-integration.ts'), 'utf-8');
-  assert.ok(src.includes('step-runner'), 'Should test step runner');
+  assert.ok(src.includes('steven'), 'Should test step runner');
   assert.ok(src.includes('building-manager'), 'Should test building manager');
 });
 

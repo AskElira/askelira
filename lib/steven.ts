@@ -140,7 +140,7 @@ const MIN_RESPONSE_LENGTH = 50; // Feature 4: minimum agent response length
 function rlog(floorId: string, msg: string): void {
   const run = getPipelineRun(floorId);
   const rid = run ? `[${run.requestId.slice(0, 8)}]` : '';
-  console.log(`[StepRunner]${rid} ${msg}`);
+  console.log(`[Steven]${rid} ${msg}`);
 }
 
 // ============================================================
@@ -367,7 +367,7 @@ function safeParseDBJson<T>(raw: string | null | undefined, label: string): T | 
   try {
     return JSON.parse(raw) as T;
   } catch (err) {
-    console.error(`[StepRunner] Failed to parse DB-stored JSON for ${label}:`, err);
+    console.error(`[Steven] Failed to parse DB-stored JSON for ${label}:`, err);
     return null;
   }
 }
@@ -388,7 +388,7 @@ export async function chainNextStep(
   const secret = process.env.CRON_SECRET || '';
 
   const url = `${baseUrl}/api/loop/step/${floorId}?step=${nextStep}&iteration=${iteration}`;
-  console.log(`[StepRunner] Chaining to ${nextStep} for floor ${floorId}: ${url}`);
+  console.log(`[Steven] Chaining to ${nextStep} for floor ${floorId}: ${url}`);
 
   try {
     const controller = new AbortController();
@@ -407,14 +407,14 @@ export async function chainNextStep(
 
     if (!res.ok) {
       const text = await res.text();
-      console.error(`[StepRunner] Chain call failed (${res.status}): ${text}`);
+      console.error(`[Steven] Chain call failed (${res.status}): ${text}`);
     }
   } catch (err) {
     const isAbort = err instanceof Error && err.name === 'AbortError';
     if (isAbort) {
-      console.log(`[StepRunner] Chain call sent (timed out waiting for response -- expected on Vercel)`);
+      console.log(`[Steven] Chain call sent (timed out waiting for response -- expected on Vercel)`);
     } else {
-      console.error(`[StepRunner] Chain call error:`, err);
+      console.error(`[Steven] Chain call error:`, err);
     }
   }
 }
@@ -644,7 +644,7 @@ export async function runAlbaStep(floorId: string, iteration: number): Promise<S
 
   // Validate required fields exist
   if (!albaResult.approach || typeof albaResult.approach !== 'string') {
-    console.error('[StepRunner] Alba returned invalid result - missing approach field');
+    console.error('[Steven] Alba returned invalid result - missing approach field');
     return {
       step: 'alba',
       success: false,
@@ -944,7 +944,7 @@ export async function runVex1Step(floorId: string, iteration: number): Promise<S
   });
 
   if (!vex1Result.approved) {
-    console.log(`[StepRunner] Vex Gate 1 REJECTED: ${vex1Result.verdict}`);
+    console.log(`[Steven] Vex Gate 1 REJECTED: ${vex1Result.verdict}`);
     if (iteration < MAX_ITERATIONS) {
       return {
         step: 'vex1',
@@ -965,7 +965,7 @@ export async function runVex1Step(floorId: string, iteration: number): Promise<S
     };
   }
 
-  console.log(`[StepRunner] Vex Gate 1 APPROVED`);
+  console.log(`[Steven] Vex Gate 1 APPROVED`);
   return {
     step: 'vex1',
     success: true,
@@ -1111,7 +1111,7 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
 
   // Validate required fields exist
   if (!davidResult.selfAuditReport || typeof davidResult.selfAuditReport !== 'string') {
-    console.error('[StepRunner] David returned invalid result - missing selfAuditReport field');
+    console.error('[Steven] David returned invalid result - missing selfAuditReport field');
     return {
       step: 'david',
       success: false,
@@ -1126,7 +1126,7 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
   if (davidResult.files.length > 0) {
     const fileNames = davidResult.files.map((f) => f.name);
     if (!fileNames.includes(davidResult.entryPoint)) {
-      console.log(`[StepRunner] entryPoint "${davidResult.entryPoint}" not in files [${fileNames.join(', ')}], correcting to ${fileNames[0]}`);
+      console.log(`[Steven] entryPoint "${davidResult.entryPoint}" not in files [${fileNames.join(', ')}], correcting to ${fileNames[0]}`);
       davidResult.entryPoint = fileNames[0];
     }
   }
@@ -1155,7 +1155,7 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
 
   // Syntax validation gate
   if (davidResult.files.length > 0) {
-    console.log(`[StepRunner] Running syntax validation on ${davidResult.files.length} file(s)...`);
+    console.log(`[Steven] Running syntax validation on ${davidResult.files.length} file(s)...`);
     const syntaxResult = await validateSyntax(davidResult.files);
 
     await logAgentAction({
@@ -1174,7 +1174,7 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
     if (!syntaxResult.valid) {
       davidResult.syntaxValid = false;
       emitEvent(BUILDING_EVENTS.SYNTAX_INVALID, { floorId, errors: syntaxResult.errors });
-      console.log(`[StepRunner] Syntax validation FAILED: ${syntaxResult.errors.join('; ')}`);
+      console.log(`[Steven] Syntax validation FAILED: ${syntaxResult.errors.join('; ')}`);
 
       // Store as Vex2 rejection so David sees it on retry
       await updateFloorStatus(floorId, 'auditing', {
@@ -1200,7 +1200,7 @@ export async function runDavidStep(floorId: string, iteration: number): Promise<
 
     davidResult.syntaxValid = true;
     emitEvent(BUILDING_EVENTS.SYNTAX_VALID, { floorId, files: syntaxResult.checkedFiles });
-    console.log(`[StepRunner] Syntax validation PASSED`);
+    console.log(`[Steven] Syntax validation PASSED`);
 
     // Update stored buildOutput with syntaxValid flag
     await updateFloorStatus(floorId, 'building', {
@@ -1382,7 +1382,7 @@ export async function runVex2Step(floorId: string, iteration: number): Promise<S
     };
   }
 
-  console.log(`[StepRunner] Vex Gate 2 APPROVED`);
+  console.log(`[Steven] Vex Gate 2 APPROVED`);
   return {
     step: 'vex2',
     success: true,
@@ -1476,7 +1476,7 @@ export async function runEliraStep(floorId: string, iteration: number): Promise<
   });
 
   if (eliraResult.verdict !== 'approved') {
-    console.log(`[StepRunner] Elira NOT READY: ${eliraResult.reason}`);
+    console.log(`[Steven] Elira NOT READY: ${eliraResult.reason}`);
     if (iteration < MAX_ITERATIONS) {
       return {
         step: 'elira',
@@ -1497,7 +1497,7 @@ export async function runEliraStep(floorId: string, iteration: number): Promise<
     };
   }
 
-  console.log(`[StepRunner] Elira APPROVED`);
+  console.log(`[Steven] Elira APPROVED`);
   return {
     step: 'elira',
     success: true,
@@ -1541,7 +1541,7 @@ export async function runFinalizeStep(floorId: string, iteration: number): Promi
   };
 
   // Mark floor live
-  console.log(`[StepRunner] Floor ${floor.floorNumber} "${floor.name}" is now LIVE`);
+  console.log(`[Steven] Floor ${floor.floorNumber} "${floor.name}" is now LIVE`);
   notify(`✅ *Floor ${floor.floorNumber}* "${floor.name}" is now *LIVE*`);
   await updateFloorStatus(floorId, 'live', {
     buildOutput: serializeDavidResult(davidResult),
@@ -1564,7 +1564,7 @@ export async function runFinalizeStep(floorId: string, iteration: number): Promi
       await addFloorToSubscription(floor.goalId);
     }
   } catch (err) {
-    console.error('[StepRunner] Floor billing failed:', err);
+    console.error('[Steven] Floor billing failed:', err);
   }
 
   // Pattern feedback (best-effort)
@@ -1622,7 +1622,7 @@ export async function runFinalizeStep(floorId: string, iteration: number): Promi
   const nextFloor = await getNextFloor(floor.goalId, floor.floorNumber);
 
   if (nextFloor) {
-    console.log(`[StepRunner] Activating next floor: ${nextFloor.floorNumber} "${nextFloor.name}"`);
+    console.log(`[Steven] Activating next floor: ${nextFloor.floorNumber} "${nextFloor.name}"`);
     await updateFloorStatus(nextFloor.id, 'researching');
 
     emitEvent(BUILDING_EVENTS.FLOOR_STATUS, {
@@ -1722,7 +1722,7 @@ export async function markFloorBlocked(floorId: string): Promise<void> {
   const floor = await getFloor(floorId);
   if (!floor) return;
 
-  console.error(`[StepRunner] Floor ${floorId} exceeded max iterations (${MAX_ITERATIONS}). Marking blocked.`);
+  console.error(`[Steven] Floor ${floorId} exceeded max iterations (${MAX_ITERATIONS}). Marking blocked.`);
   await updateFloorStatus(floorId, 'blocked');
   notify(`🚫 *Floor ${floor.floorNumber}* "${floor.name}" *blocked* — exceeded ${MAX_ITERATIONS} iterations`);
 

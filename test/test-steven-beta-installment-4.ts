@@ -86,11 +86,11 @@ async function runTests() {
     );
   }
 
-  // ── SB-036: step-runner no longer uses `as any` ──
-  console.log('\nSB-036: step-runner no longer uses `as any` for alba fields');
+  // ── SB-036: steven no longer uses `as any` ──
+  console.log('\nSB-036: steven no longer uses `as any` for alba fields');
   {
     const src = fs.readFileSync(
-      path.join(__dirname, '../lib/step-runner.ts'),
+      path.join(__dirname, '../lib/steven.ts'),
       'utf-8',
     );
     // Check AlbaResult has the extended fields (look in a wider range)

@@ -60,11 +60,11 @@ export async function POST(
 
     console.log(`[API /loop/step] Starting batch from step="${step}" floor=${floorId} iteration=${iteration}`);
 
-    const stepRunner = await import('@/lib/step-runner');
+    const steven = await import('@/lib/steven');
 
     // Run steps sequentially until time runs out or we're done
     const completedSteps: string[] = [];
-    let lastResult: Awaited<ReturnType<typeof stepRunner.runStep>> | null = null;
+    let lastResult: Awaited<ReturnType<typeof steven.runStep>> | null = null;
     let currentStep = step;
     let currentFloorId = floorId;
     let currentIteration = iteration;
@@ -93,7 +93,7 @@ export async function POST(
       console.log(`[API /loop/step] Running step="${currentStep}" (${remaining}ms remaining, est ${estimatedDuration}ms)`);
 
       try {
-        lastResult = await stepRunner.runStep(
+        lastResult = await steven.runStep(
           currentFloorId,
           currentStep as 'alba' | 'vex1' | 'david' | 'vex2' | 'elira' | 'finalize',
           currentIteration,
@@ -123,7 +123,7 @@ export async function POST(
 
       // Check for max iterations exceeded
       if (lastResult.nextStep === 'alba' && lastResult.iteration > 5) {
-        await stepRunner.markFloorBlocked(lastResult.floorId);
+        await steven.markFloorBlocked(lastResult.floorId);
         break;
       }
 

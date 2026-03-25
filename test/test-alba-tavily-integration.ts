@@ -3,7 +3,7 @@ export {};
 /**
  * Integration test: Alba step with Tavily search
  *
- * Verifies that when SEARCH_PROVIDER=tavily, the Alba step in step-runner
+ * Verifies that when SEARCH_PROVIDER=tavily, the Alba step in steven
  * properly invokes tavilySearch, and results flow into the combined research
  * summary and eventually to the LLM prompt.
  *

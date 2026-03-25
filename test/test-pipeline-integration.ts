@@ -1,7 +1,7 @@
 /**
  * SD-031: Integration test for the full building pipeline
  *
- * Verifies that the step-runner, building-manager, and agent pipeline
+ * Verifies that the steven, building-manager, and agent pipeline
  * modules are properly structured and export the expected functions.
  */
 
@@ -20,13 +20,13 @@ function test(name: string, fn: () => void) {
 
 console.log('\n=== SD-031: Pipeline Integration Tests ===\n');
 
-test('step-runner exports chainNextStep', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'lib/step-runner.ts'), 'utf-8');
+test('steven exports chainNextStep', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'lib/steven.ts'), 'utf-8');
   assert.ok(src.includes('export async function chainNextStep'), 'Should export chainNextStep');
 });
 
-test('step-runner has agent pipeline (Alba, Vex, David, Elira)', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'lib/step-runner.ts'), 'utf-8');
+test('steven has agent pipeline (Alba, Vex, David, Elira)', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'lib/steven.ts'), 'utf-8');
   assert.ok(src.includes('Alba'), 'Should reference Alba');
   assert.ok(src.includes('Vex'), 'Should reference Vex');
   assert.ok(src.includes('David'), 'Should reference David');

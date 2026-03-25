@@ -117,12 +117,12 @@ export async function POST(
 
       // Start the floor through step-based building loop
       try {
-        const { chainNextStep } = await import('@/lib/step-runner');
+        const { chainNextStep } = await import('@/lib/steven');
         chainNextStep(floor.id, 'alba', 1).catch((err) => {
           console.error(`[API /expand] Step chain failed for ${floor.id}:`, err);
         });
       } catch {
-        // step-runner not available
+        // steven not available
       }
 
       return NextResponse.json({

@@ -115,7 +115,7 @@ export async function POST(
         const buildPromise = (async () => {
           const bgStart = Date.now();
           try {
-            const stepRunner = await import('@/lib/step-runner');
+            const steven = await import('@/lib/steven');
             console.log(`[API /approve] Running steps for floor ${floor1.id}`);
 
             let currentFloorId = floor1.id;
@@ -145,7 +145,7 @@ export async function POST(
               }
 
               console.log(`[API /approve] Running step="${currentStep}" (${remaining}ms remaining, est ${estimatedDuration}ms)`);
-              const result = await stepRunner.runStep(
+              const result = await steven.runStep(
                 currentFloorId,
                 currentStep as 'alba' | 'vex1' | 'david' | 'vex2' | 'elira' | 'finalize',
                 currentIteration,
@@ -159,7 +159,7 @@ export async function POST(
               }
 
               if (result.nextStep === 'alba' && result.iteration > 5) {
-                await stepRunner.markFloorBlocked(result.floorId);
+                await steven.markFloorBlocked(result.floorId);
                 allDone = true;
                 break;
               }
