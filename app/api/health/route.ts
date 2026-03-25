@@ -1,5 +1,5 @@
 /**
- * Health check endpoint -- Updated by Steven Delta SD-007
+ * Health check endpoint -- Updated by Steven Delta SD-007, Phase 5
  * Returns server status, uptime, and database connectivity.
  */
 import { NextResponse } from 'next/server';
@@ -12,6 +12,15 @@ export async function GET() {
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     version: packageJson.version,
+    environment: process.env.NODE_ENV || 'unknown',
+  };
+
+  // Phase 5: Memory usage
+  const memUsage = process.memoryUsage();
+  health.memory = {
+    heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
+    heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
+    rssMB: Math.round(memUsage.rss / 1024 / 1024),
   };
 
   // SD-007: Database health check
@@ -29,6 +38,14 @@ export async function GET() {
       error: err instanceof Error ? err.message : 'Unknown error',
     };
     health.status = 'degraded';
+  }
+
+  // Phase 5: Database pool stats
+  try {
+    const { getPoolStats } = await import('@/lib/db-pool');
+    health.databasePool = getPoolStats();
+  } catch {
+    // db-pool not available
   }
 
   // Feature 30: Gateway health info
@@ -50,6 +67,27 @@ export async function GET() {
     health.routing = getRoutingMetrics();
   } catch {
     // agent-router not available
+  }
+
+  // Phase 5: Check critical environment variables
+  const requiredEnvVars = [
+    'DATABASE_URL',
+    'NEXTAUTH_SECRET',
+    'ANTHROPIC_API_KEY',
+  ];
+  const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
+
+  if (missingEnvVars.length > 0) {
+    health.environment_vars = {
+      status: 'missing',
+      missing: missingEnvVars,
+    };
+    health.status = 'degraded';
+  } else {
+    health.environment_vars = {
+      status: 'ok',
+      count: requiredEnvVars.length,
+    };
   }
 
   const statusCode = health.status === 'ok' ? 200 : 503;
