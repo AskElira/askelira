@@ -66,6 +66,7 @@ export default function SettingsPage() {
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
   const [isMobile, setIsMobile] = useState(false);
+  const [userPlan, setUserPlan] = useState<{ plan: string; debatesUsed: number } | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   // Detect mobile viewport
@@ -85,7 +86,7 @@ export default function SettingsPage() {
     }
   }, [session]);
 
-  // Load saved settings
+  // Load saved settings + plan data
   useEffect(() => {
     if (!session?.user?.email) return;
     fetch('/api/user/update')
@@ -93,6 +94,9 @@ export default function SettingsPage() {
       .then((data) => {
         if (data?.settings) {
           setSettings((prev) => ({ ...prev, ...data.settings }));
+        }
+        if (data?.plan) {
+          setUserPlan(data.plan);
         }
       })
       .catch(() => {});
@@ -670,24 +674,27 @@ export default function SettingsPage() {
               <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>
                 Current Plan
               </p>
-              <p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#fff' }}>
-                Free
+              <p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#fff', textTransform: 'capitalize' }}>
+                {userPlan?.plan || 'Free'}
               </p>
               <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
-                4 debates / month
+                {userPlan?.debatesUsed ?? 0} debates used
+                {(userPlan?.plan || 'free') !== 'enterprise' && ' / ' + ((userPlan?.plan || 'free') === 'pro' ? '20' : '4') + ' per month'}
               </p>
             </div>
 
-            <Link
-              href="/billing"
-              style={{
-                ...btnPrimary,
-                textDecoration: 'none',
-                display: 'inline-block',
-              }}
-            >
-              Upgrade to Pro
-            </Link>
+            {(userPlan?.plan || 'free') !== 'enterprise' && (
+              <Link
+                href="/billing"
+                style={{
+                  ...btnPrimary,
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                }}
+              >
+                {(userPlan?.plan || 'free') === 'pro' ? 'Manage Plan' : 'Upgrade to Pro'}
+              </Link>
+            )}
           </div>
 
           <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>
