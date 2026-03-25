@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import SignIn from './SignIn';
 
 export default function UserMenu() {
@@ -109,8 +110,24 @@ export default function UserMenu() {
             style={{
               borderTop: '1px solid var(--border)',
               paddingTop: '0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.125rem',
             }}
           >
+            <Link
+              href="/settings"
+              onClick={() => setOpen(false)}
+              style={{
+                display: 'block',
+                textDecoration: 'none',
+                color: '#9ca3af',
+                fontSize: '0.8rem',
+                padding: '0.375rem 0',
+              }}
+            >
+              Settings
+            </Link>
             <button
               onClick={() => signOut()}
               style={{
