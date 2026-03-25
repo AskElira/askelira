@@ -228,9 +228,7 @@ export async function POST(req: NextRequest) {
 
     return new Response(readable, { headers: sseHeaders() });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Internal server error';
-    console.error('[API /build]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API /build]', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Build failed' }, { status: 500 });
   }
 }

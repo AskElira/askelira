@@ -37,13 +37,16 @@ export async function POST(
       return NextResponse.json({ error: 'floorId is required' }, { status: 400 });
     }
 
-    // Auth: require CRON_SECRET for internal chain calls (if configured)
+    // Auth: require CRON_SECRET for internal chain calls
+    // Phase 5.3: Fixed -- must reject if CRON_SECRET not configured (was bypass)
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      const provided = req.headers.get('x-cron-secret');
-      if (provided !== cronSecret) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    if (!cronSecret) {
+      console.error('[API /loop/step] CRON_SECRET not configured');
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+    const provided = req.headers.get('x-cron-secret');
+    if (provided !== cronSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Validate step name
@@ -164,10 +167,9 @@ export async function POST(
 
     return NextResponse.json(response);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Internal server error';
-    console.error(`[API /loop/step] Fatal error:`, msg);
+    console.error(`[API /loop/step] Fatal error:`, err instanceof Error ? err.message : err);
     return NextResponse.json(
-      { error: msg, durationMs: Date.now() - startTime },
+      { error: 'Build step failed', durationMs: Date.now() - startTime },
       { status: 500 },
     );
   }

@@ -123,8 +123,7 @@ export async function POST(request: NextRequest) {
       checkoutUrl: session.url,
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    console.error('[API /billing/checkout]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API /billing/checkout]', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
   }
 }

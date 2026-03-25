@@ -22,13 +22,16 @@ export async function POST(
       );
     }
 
-    // Auth: require CRON_SECRET for internal calls (if configured)
+    // Auth: require CRON_SECRET for internal calls
+    // Phase 5.3: Fixed -- must reject if CRON_SECRET not configured (was bypass)
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      const provided = _req.headers.get('x-cron-secret');
-      if (provided !== cronSecret) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    if (!cronSecret) {
+      console.error('[API /loop/start] CRON_SECRET not configured');
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+    const provided = _req.headers.get('x-cron-secret');
+    if (provided !== cronSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Rate limit: 10/hour per floorId (raised from 3 to allow stall recovery restarts)
@@ -165,13 +168,11 @@ export async function POST(
         message: `Step-based loop started for Floor ${floor.floorNumber} "${floor.name}" at step "${startStep}"`,
       });
     } catch (dbErr: unknown) {
-      const message = dbErr instanceof Error ? dbErr.message : 'Database error';
-      console.error('[API /loop/start] Error:', message);
-      return NextResponse.json({ error: message }, { status: 500 });
+      console.error('[API /loop/start] Error:', dbErr instanceof Error ? dbErr.message : dbErr);
+      return NextResponse.json({ error: 'Failed to start build loop' }, { status: 500 });
     }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    console.error('[API /loop/start]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API /loop/start]', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

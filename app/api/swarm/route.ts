@@ -137,8 +137,7 @@ export async function POST(req: NextRequest) {
     cacheSet(result);
     return NextResponse.json(result);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    console.error('[API /swarm]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API /swarm]', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Swarm debate failed' }, { status: 500 });
   }
 }

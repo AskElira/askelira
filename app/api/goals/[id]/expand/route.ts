@@ -135,13 +135,11 @@ export async function POST(
         message: `Expansion floor ${nextFloorNumber} "${name}" created and building loop started.`,
       });
     } catch (dbErr: unknown) {
-      const message = dbErr instanceof Error ? dbErr.message : 'Database error';
-      console.error('[API /goals/[id]/expand] Error:', message);
-      return NextResponse.json({ error: message }, { status: 500 });
+      console.error('[API /goals/[id]/expand] Error:', dbErr instanceof Error ? dbErr.message : dbErr);
+      return NextResponse.json({ error: 'Failed to expand goal' }, { status: 500 });
     }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    console.error('[API /goals/[id]/expand]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API /goals/[id]/expand]', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

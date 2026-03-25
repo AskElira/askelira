@@ -197,13 +197,11 @@ export async function POST(
         message: `Building approved. Floor 1 "${floor1?.name ?? 'unknown'}" is now researching.`,
       });
     } catch (dbErr: unknown) {
-      const message = dbErr instanceof Error ? dbErr.message : 'Database error';
-      console.error('[API /goals/[id]/approve] Error:', message);
-      return NextResponse.json({ error: message }, { status: 500 });
+      console.error('[API /goals/[id]/approve] Error:', dbErr instanceof Error ? dbErr.message : dbErr);
+      return NextResponse.json({ error: 'Failed to approve goal' }, { status: 500 });
     }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    console.error('[API /goals/[id]/approve]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API /goals/[id]/approve]', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

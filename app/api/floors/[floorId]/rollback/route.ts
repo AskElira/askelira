@@ -90,13 +90,11 @@ export async function POST(
         message: `Floor rolled back to snapshot ${targetSnapshotId}`,
       });
     } catch (dbErr: unknown) {
-      const message = dbErr instanceof Error ? dbErr.message : 'Database error';
-      console.error('[API /floors/[floorId]/rollback] Error:', message);
-      return NextResponse.json({ error: message }, { status: 500 });
+      console.error('[API /floors/[floorId]/rollback] Error:', dbErr instanceof Error ? dbErr.message : dbErr);
+      return NextResponse.json({ error: 'Failed to rollback floor' }, { status: 500 });
     }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    console.error('[API /floors/[floorId]/rollback]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API /floors/[floorId]/rollback]', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

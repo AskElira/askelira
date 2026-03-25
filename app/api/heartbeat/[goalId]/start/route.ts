@@ -60,13 +60,11 @@ export async function POST(
         message: `Heartbeat started for goal ${goalId} with ${intervalMs}ms interval`,
       });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to start heartbeat';
-      console.error('[API /heartbeat/[goalId]/start] Error:', message);
-      return NextResponse.json({ error: message }, { status: 500 });
+      console.error('[API /heartbeat/[goalId]/start] Error:', err instanceof Error ? err.message : err);
+      return NextResponse.json({ error: 'Failed to start heartbeat' }, { status: 500 });
     }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    console.error('[API /heartbeat/[goalId]/start]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API /heartbeat/[goalId]/start]', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
