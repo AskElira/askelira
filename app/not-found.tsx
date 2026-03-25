@@ -16,14 +16,13 @@ export default function NotFound() {
       minHeight: '100vh',
       padding: '2rem',
       textAlign: 'center',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
       <div style={{ maxWidth: '600px' }}>
         <h1 style={{
           fontSize: '6rem',
           margin: '0',
           fontWeight: 700,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
@@ -31,29 +30,31 @@ export default function NotFound() {
           404
         </h1>
         <h2 style={{
-          fontSize: '2rem',
+          fontSize: '1.5rem',
           margin: '1rem 0',
-          fontWeight: 600
+          fontWeight: 700,
+          color: '#fff',
         }}>
           Page not found
         </h2>
         <p style={{
-          color: '#666',
+          color: '#9ca3af',
           margin: '0 0 2rem',
-          fontSize: '1.125rem'
+          fontSize: '0.9375rem',
+          lineHeight: 1.6,
         }}>
-          The page you're looking for doesn't exist or has been moved.
+          The page you are looking for does not exist or has been moved.
         </p>
 
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
           <Link
             href="/"
             style={{
               padding: '0.75rem 1.5rem',
-              fontSize: '1rem',
-              fontWeight: 500,
-              color: 'white',
-              backgroundColor: '#000',
+              fontSize: '0.9375rem',
+              fontWeight: 600,
+              color: '#fff',
+              background: 'var(--accent)',
               border: 'none',
               borderRadius: '0.5rem',
               textDecoration: 'none',
@@ -66,11 +67,11 @@ export default function NotFound() {
             href="/onboard"
             style={{
               padding: '0.75rem 1.5rem',
-              fontSize: '1rem',
+              fontSize: '0.9375rem',
               fontWeight: 500,
-              color: '#000',
-              backgroundColor: '#f5f5f5',
-              border: 'none',
+              color: '#9ca3af',
+              background: 'transparent',
+              border: '1px solid var(--border)',
               borderRadius: '0.5rem',
               textDecoration: 'none',
               display: 'inline-block',
@@ -82,10 +83,10 @@ export default function NotFound() {
 
         <p style={{
           marginTop: '3rem',
-          fontSize: '0.875rem',
-          color: '#999'
+          fontSize: '0.8125rem',
+          color: '#6b7280',
         }}>
-          Lost? Start a new swarm debate or check your building history.
+          Lost? Start a new building or check your building history.
         </p>
       </div>
     </div>

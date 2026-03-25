@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
 // ---------------------------------------------------------------------------
@@ -56,7 +56,9 @@ export default function BuildingsListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchGoals = useCallback(() => {
+    setIsLoading(true);
+    setError(null);
     fetch('/api/goals')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch buildings');
@@ -71,6 +73,10 @@ export default function BuildingsListPage() {
       })
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchGoals();
+  }, [fetchGoals]);
 
   return (
     <div
@@ -144,7 +150,22 @@ export default function BuildingsListPage() {
             textAlign: 'center',
           }}
         >
-          <p style={{ fontSize: '0.875rem', color: 'var(--red)' }}>{error}</p>
+          <p style={{ fontSize: '0.875rem', color: 'var(--red)', marginBottom: '0.75rem' }}>{error}</p>
+          <button
+            onClick={fetchGoals}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--red)',
+              color: 'var(--red)',
+              borderRadius: '0.375rem',
+              padding: '0.5rem 1.25rem',
+              cursor: 'pointer',
+              fontSize: '0.8125rem',
+              fontWeight: 500,
+            }}
+          >
+            Retry
+          </button>
         </div>
       )}
 

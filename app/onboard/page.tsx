@@ -927,13 +927,14 @@ export default function OnboardPage() {
               />
               <button
                 onClick={handleRedesign}
-                disabled={isLoading}
+                disabled={isLoading || !changeRequest.trim()}
                 style={{
                   ...buttonSecondary,
                   fontSize: '0.8125rem',
                   padding: '0.5rem 1rem',
                   whiteSpace: 'nowrap',
-                  opacity: isLoading ? 0.5 : 1,
+                  opacity: isLoading || !changeRequest.trim() ? 0.5 : 1,
+                  cursor: isLoading || !changeRequest.trim() ? 'not-allowed' : 'pointer',
                 }}
               >
                 {isLoading ? 'Redesigning...' : 'Redesign'}

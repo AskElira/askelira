@@ -23,7 +23,7 @@ export default function GlobalError({
 
   return (
     <html lang="en">
-      <body style={{ margin: 0, padding: 0 }}>
+      <body style={{ margin: 0, padding: 0, background: '#0f1117', color: '#e5e7eb' }}>
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -32,22 +32,35 @@ export default function GlobalError({
           minHeight: '100vh',
           padding: '2rem',
           textAlign: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          backgroundColor: '#fafafa',
+          fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
         }}>
           <div style={{ maxWidth: '600px' }}>
-            <h1 style={{ fontSize: '4rem', margin: '0 0 1rem' }}>🔥</h1>
-            <h2 style={{ fontSize: '2rem', margin: '0 0 1rem', fontWeight: 600 }}>
+            <div style={{
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              background: 'rgba(248, 113, 113, 0.15)',
+              border: '2px solid #f87171',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.5rem',
+              fontSize: '1.75rem',
+              color: '#f87171',
+            }}>
+              !!
+            </div>
+            <h2 style={{ fontSize: '1.5rem', margin: '0 0 0.75rem', fontWeight: 700, color: '#fff' }}>
               Critical Error
             </h2>
-            <p style={{ color: '#666', margin: '0 0 2rem', fontSize: '1.125rem' }}>
-              AskElira encountered a critical error. We've been notified and will investigate.
+            <p style={{ color: '#9ca3af', margin: '0 0 2rem', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+              AskElira encountered a critical error. We have been notified and will investigate.
             </p>
 
             {error.digest && (
               <p style={{
-                color: '#999',
-                fontSize: '0.875rem',
+                color: '#6b7280',
+                fontSize: '0.8125rem',
                 fontFamily: 'monospace',
                 margin: '0 0 2rem',
                 wordBreak: 'break-all',
@@ -56,15 +69,15 @@ export default function GlobalError({
               </p>
             )}
 
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
               <button
                 onClick={reset}
                 style={{
                   padding: '0.75rem 1.5rem',
-                  fontSize: '1rem',
-                  fontWeight: 500,
-                  color: 'white',
-                  backgroundColor: '#000',
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                  color: '#fff',
+                  background: '#6366f1',
                   border: 'none',
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
@@ -76,11 +89,11 @@ export default function GlobalError({
                 href="/"
                 style={{
                   padding: '0.75rem 1.5rem',
-                  fontSize: '1rem',
+                  fontSize: '0.9375rem',
                   fontWeight: 500,
-                  color: '#000',
-                  backgroundColor: '#f5f5f5',
-                  border: '1px solid #e0e0e0',
+                  color: '#9ca3af',
+                  background: 'transparent',
+                  border: '1px solid #2a2d3a',
                   borderRadius: '0.5rem',
                   textDecoration: 'none',
                   display: 'inline-block',
@@ -92,8 +105,8 @@ export default function GlobalError({
 
             <p style={{
               marginTop: '3rem',
-              fontSize: '0.875rem',
-              color: '#999'
+              fontSize: '0.8125rem',
+              color: '#6b7280',
             }}>
               If you need immediate assistance, please contact support with the error ID above.
             </p>

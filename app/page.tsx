@@ -3,11 +3,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import dynamic from 'next/dynamic';
 import SwarmInput from '@/components/SwarmInput';
 const WorkspaceEditor = dynamic(() => import('@/components/WorkspaceEditor').catch(() => ({
   default: () => <div style={{ padding: '1rem', color: '#6b7280', fontSize: '0.875rem' }}>Workspace editor loading...</div>
 })), { ssr: false });
-import dynamic from 'next/dynamic';
 
 const GlobeSwarm = dynamic(() => import('@/components/GlobeSwarm').catch(() => ({
   default: () => (
