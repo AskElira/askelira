@@ -3,21 +3,35 @@
  *
  * GET /api/goals/[id]/progress
  * Returns current pipeline progress: active agent, elapsed time, status.
+ * Auth: Unified auth (NextAuth session or header-based).
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { authenticate } from '@/lib/auth-helpers';
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const goalId = params.id;
-
   try {
+    // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+    const auth = await authenticate(req);
+    if (!auth.authenticated || !auth.customerId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const goalId = params.id;
+
     const { getProgressSummary } = await import('@/lib/pipeline-state');
     const { getGoal, getAllFloors } = await import('@/lib/building-manager');
 
-    const progress = getProgressSummary(goalId);
     const goal = await getGoal(goalId);
+
+    // Verify ownership
+    if (goal.customerId !== auth.customerId) {
+      return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+    }
+
+    const progress = getProgressSummary(goalId);
     const floors = await getAllFloors(goalId);
 
     const currentFloor = floors.find(

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authenticate } from '@/lib/auth-helpers';
 import { getTierForEmail } from '@/lib/tiers';
 import { sseHeaders } from '@/lib/progress-tracker';
 import { safeWaitUntil, getInternalBaseUrl } from '@/lib/internal-fetch';
@@ -47,12 +46,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: questionCheck.reason }, { status: 400 });
     }
 
-    // Auth check
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+    const auth = await authenticate(req);
+    if (!auth.authenticated || !auth.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const email = session.user.email;
+    const email = auth.email;
 
     // SD-011: Per-user build rate limit (5 builds/hour)
     const userRateCheck = checkRateLimit(`build:${email}`, 5, 3600000);

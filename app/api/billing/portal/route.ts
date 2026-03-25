@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authenticate } from '@/lib/auth-helpers';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+    const auth = await authenticate(request);
+    if (!auth.authenticated || !auth.customerId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       SELECT s.stripe_customer_id FROM subscriptions s
       JOIN goals g ON g.id = s.goal_id
       WHERE s.stripe_customer_id IS NOT NULL
-        AND g.customer_id = ${session.user.email}
+        AND g.customer_id = ${auth.customerId}
       ORDER BY s.created_at DESC
       LIMIT 1
     `;

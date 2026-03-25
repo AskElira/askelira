@@ -8,15 +8,15 @@
 
 import { NextRequest } from 'next/server';
 import { readWorkspaceFile, isPathSafe } from '@/lib/workspace-paths';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authenticate } from '@/lib/auth-helpers';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { customerId: string; path: string[] } },
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
+  // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+  const auth = await authenticate(request);
+  if (!auth.authenticated || !auth.customerId) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

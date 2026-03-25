@@ -1,11 +1,12 @@
 import { readAllWorkspace, writeAgents } from '@/lib/workspace/workspace-manager';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { NextRequest } from 'next/server';
+import { authenticate } from '@/lib/auth-helpers';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+    const auth = await authenticate(req);
+    if (!auth.authenticated || !auth.customerId) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -16,9 +17,10 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
+export async function POST(req: NextRequest) {
+  // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+  const auth = await authenticate(req);
+  if (!auth.authenticated || !auth.customerId) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

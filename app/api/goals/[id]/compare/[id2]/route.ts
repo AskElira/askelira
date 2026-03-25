@@ -3,20 +3,33 @@
  *
  * GET /api/goals/[id]/compare/[id2]
  * Returns side-by-side comparison of two builds.
+ * Auth: Unified auth (NextAuth session or header-based).
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { authenticate } from '@/lib/auth-helpers';
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string; id2: string } },
 ) {
   try {
+    // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+    const auth = await authenticate(req);
+    if (!auth.authenticated || !auth.customerId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { getGoal, getRecentLogs } = await import('@/lib/building-manager');
 
     const [goal1, goal2] = await Promise.all([
       getGoal(params.id),
       getGoal(params.id2),
     ]);
+
+    // Verify ownership of both goals
+    if (goal1.customerId !== auth.customerId || goal2.customerId !== auth.customerId) {
+      return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+    }
 
     const [logs1, logs2] = await Promise.all([
       getRecentLogs(params.id, 200),

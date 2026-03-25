@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runSwarmDebate } from '@/lib/openclaw-orchestrator';
 import { encodeSSE, encodeSSEDone, encodeSSEError, sseHeaders } from '@/lib/progress-tracker';
 import { cacheSet } from '@/lib/swarm-cache';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authenticate } from '@/lib/auth-helpers';
 import { checkUsage, getTierForEmail } from '@/lib/tiers';
 // [AUTO-ADDED] BUG-1-09: Rate limit unauthenticated swarm requests
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
@@ -35,9 +34,9 @@ export async function POST(req: NextRequest) {
 
     const trimmed = question.trim();
 
-    // Rate limit check
-    const session = await getServerSession(authOptions);
-    const email = session?.user?.email;
+    // Rate limit check -- use unified auth (supports both web + CLI)
+    const authResult = await authenticate(req);
+    const email = authResult.authenticated ? authResult.email : null;
 
     if (email) {
       const { usage, incrementDebateCount: increment } = await getUserUsageData(email);

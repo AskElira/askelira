@@ -3,17 +3,31 @@
  *
  * GET /api/goals/[id]/timeline
  * Returns agent start/end times for the build.
+ * Auth: Unified auth (NextAuth session or header-based).
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { authenticate } from '@/lib/auth-helpers';
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const goalId = params.id;
-
   try {
-    const { getRecentLogs, getAllFloors } = await import('@/lib/building-manager');
+    // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+    const auth = await authenticate(req);
+    if (!auth.authenticated || !auth.customerId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const goalId = params.id;
+
+    const { getRecentLogs, getAllFloors, getGoal } = await import('@/lib/building-manager');
+
+    // Verify ownership
+    const goal = await getGoal(goalId);
+    if (goal.customerId !== auth.customerId) {
+      return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+    }
 
     const floors = await getAllFloors(goalId);
     const logs = await getRecentLogs(goalId, 200);

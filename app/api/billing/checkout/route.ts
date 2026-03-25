@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authenticate } from '@/lib/auth-helpers';
 
 export async function POST(request: NextRequest) {
   try {
-    const authSession = await getServerSession(authOptions);
-    if (!authSession?.user?.email) {
+    // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+    const auth = await authenticate(request);
+    if (!auth.authenticated || !auth.customerId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     // [BUG-5-06] Verify goal ownership. Without this check, any authenticated
     // user can create a checkout session for another user's goal, potentially
     // manipulating their subscription or charging them.
-    if (goal.customerId !== authSession.user.email) {
+    if (goal.customerId !== auth.customerId) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
     }
 

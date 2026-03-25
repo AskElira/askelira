@@ -6,8 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authenticate } from '@/lib/auth-helpers';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 import {
   emitAgentAction,
@@ -45,8 +44,9 @@ const MAX_SIMULATION_DURATION = 300; // 5 minutes max
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+    const auth = await authenticate(req);
+    if (!auth.authenticated || !auth.customerId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -142,6 +142,12 @@ export async function POST(req: NextRequest) {
  * Start a quick 10-second simulation
  */
 export async function GET(req: NextRequest) {
+  // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+  const authGet = await authenticate(req);
+  if (!authGet.authenticated || !authGet.customerId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const searchParams = req.nextUrl.searchParams;
   const goalId = searchParams.get('goalId');
 

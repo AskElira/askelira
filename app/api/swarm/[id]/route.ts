@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDebateResult } from '@/lib/results';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authenticate } from '@/lib/auth-helpers';
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
+  // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
+  const auth = await authenticate(req);
+  if (!auth.authenticated || !auth.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -31,7 +31,7 @@ export async function GET(
       SELECT user_email FROM debates WHERE id = ${params.id} LIMIT 1
     `;
     // If the debate exists in DB and belongs to a different user, deny access
-    if (rows.length > 0 && rows[0].user_email !== session.user.email) {
+    if (rows.length > 0 && rows[0].user_email !== auth.email) {
       return NextResponse.json(
         { error: 'Debate result not found or expired' },
         { status: 404 },
