@@ -1,11 +1,79 @@
 'use client';
 
-import { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import type { FloorState, AgentActivity } from '@/hooks/useBuilding';
+
+// ---------------------------------------------------------------------------
+// Error Boundary -- catches Three.js / WebGL crashes
+// ---------------------------------------------------------------------------
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  errorMessage: string;
+}
+
+class Building3DErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  ErrorBoundaryState
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, errorMessage: '' };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, errorMessage: error.message || 'Rendering error' };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          style={{
+            width: '100%',
+            height: '400px',
+            background: 'var(--panel)',
+            borderRadius: '0.75rem',
+            border: '1px solid var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+          }}
+        >
+          <span style={{ fontSize: '2rem' }}>&#9888;</span>
+          <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
+            3D view could not render
+          </p>
+          <p style={{ color: '#6b7280', fontSize: '0.75rem', maxWidth: '300px', textAlign: 'center' }}>
+            {this.state.errorMessage}
+          </p>
+          <button
+            onClick={() => this.setState({ hasError: false, errorMessage: '' })}
+            style={{
+              padding: '0.375rem 0.75rem',
+              background: 'rgba(99, 102, 241, 0.15)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '0.375rem',
+              color: 'var(--accent)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -176,7 +244,7 @@ function Floor3D({ floor, index, floorHeight, isActive }: Floor3DProps) {
     }
   });
 
-  const floorColor = FLOOR_COLORS[floor.status];
+  const floorColor = FLOOR_COLORS[floor.status] ?? '#374151';
   const yPosition = index * floorHeight;
 
   return (
@@ -317,8 +385,9 @@ function BuildingScene({ floors, agents, floorHeight }: BuildingSceneProps) {
         ))}
 
         {/* Central pillar */}
+        {floors.length > 0 && (
         <mesh position={[0, (floors.length * floorHeight) / 2, 0]}>
-          <cylinderGeometry args={[0.3, 0.3, floors.length * floorHeight, 8]} />
+          <cylinderGeometry args={[0.3, 0.3, Math.max(floors.length * floorHeight, 0.1), 8]} />
           <meshStandardMaterial
             color="#2a2d3a"
             metalness={0.8}
@@ -327,6 +396,7 @@ function BuildingScene({ floors, agents, floorHeight }: BuildingSceneProps) {
             emissiveIntensity={0.1}
           />
         </mesh>
+        )}
 
         {/* Ground platform */}
         <mesh position={[0, -0.5, 0]} receiveShadow>
@@ -359,22 +429,26 @@ function BuildingScene({ floors, agents, floorHeight }: BuildingSceneProps) {
 // Main Component
 // ---------------------------------------------------------------------------
 
-export default function AnimatedBuilding3D({
+function AnimatedBuilding3DInner({
   floors,
   activities,
   goalId,
 }: AnimatedBuilding3DProps) {
   const floorHeight = 3;
+  const safeFloors = Array.isArray(floors) ? floors : [];
 
   // Convert activities to 3D agents
   const agents = useMemo<Agent3D[]>(() => {
+    if (!activities || activities.length === 0) return [];
     const agentMap = new Map<string, Agent3D>();
     const recentActivities = activities.slice(0, 10);
+    const count = recentActivities.length || 1; // avoid division by zero
 
     recentActivities.forEach((activity, index) => {
-      if (!agentMap.has(activity.agent)) {
+      if (!activity || !activity.agent || agentMap.has(activity.agent)) return;
+      {
         const floorIndex = activity.iteration ? activity.iteration - 1 : 0;
-        const angle = (index / recentActivities.length) * Math.PI * 2;
+        const angle = (index / count) * Math.PI * 2;
         const radius = 2.5;
 
         agentMap.set(activity.agent, {
@@ -452,14 +526,14 @@ export default function AnimatedBuilding3D({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <div>
-            <span style={{ color: '#22c55e' }}>●</span> Floors: {floors.length}
+            <span style={{ color: '#22c55e' }}>●</span> Floors: {safeFloors.length}
           </div>
           <div>
             <span style={{ color: '#2dd4bf' }}>●</span> Agents: {agents.length}
           </div>
           <div>
             <span style={{ color: '#a78bfa' }}>●</span> Live:{' '}
-            {floors.filter((f) => f.status === 'live').length}
+            {safeFloors.filter((f) => f.status === 'live').length}
           </div>
         </div>
       </div>
@@ -474,11 +548,23 @@ export default function AnimatedBuilding3D({
         gl={{ antialias: true, alpha: true }}
       >
         <BuildingScene
-          floors={floors}
+          floors={safeFloors}
           agents={agents}
           floorHeight={floorHeight}
         />
       </Canvas>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Exported component wrapped in error boundary
+// ---------------------------------------------------------------------------
+
+export default function AnimatedBuilding3D(props: AnimatedBuilding3DProps) {
+  return (
+    <Building3DErrorBoundary>
+      <AnimatedBuilding3DInner {...props} />
+    </Building3DErrorBoundary>
   );
 }

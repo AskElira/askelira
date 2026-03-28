@@ -52,6 +52,8 @@ export interface BuildingState {
   stevenSuggestions: string[];
   heartbeatActive: boolean;
   lastHeartbeatAt: Date | null;
+  currentAgent: string | null;
+  currentStep: string | null;
   pendingExpansions: PendingExpansion[];
 }
 
@@ -138,65 +140,140 @@ export function useBuildingState(goalId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const socketConnected = useRef(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Fetch building data from API
-  const fetchBuilding = useCallback(async () => {
+  // Fetch building data from API (silent = true skips setting isLoading, for background polls)
+  const fetchBuilding = useCallback(async (silent = false) => {
     try {
-      setIsLoading(true);
-      setError(null);
-      const res = await fetch(`/api/goals/${goalId}`);
+      if (!silent) {
+        setIsLoading(true);
+        setError(null);
+      }
+      // Support guest mode: read customerId from localStorage if set
+      const customerId = typeof window !== 'undefined' ? localStorage.getItem('askelira_customer_id') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (customerId) headers['x-customer-id'] = customerId;
+      const res = await fetch(`/api/goals/${goalId}`, { headers });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: 'Request failed' }));
         throw new Error(body.error || `HTTP ${res.status}`);
       }
       const data: ApiResponse = await res.json();
       setBuilding(parseApiResponse(data));
+      if (!silent) setError(null);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load building';
-      setError(message);
+      if (!silent) {
+        const message = err instanceof Error ? err.message : 'Failed to load building';
+        setError(message);
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [goalId]);
 
   // Initial fetch
   useEffect(() => {
-    fetchBuilding();
+    fetchBuilding(false);
   }, [fetchBuilding]);
 
-  // Fetch heartbeat status (separate endpoint, not included in goals API)
+  // Polling fallback -- always poll every 8 seconds. If Socket.io is connected,
+  // poll less frequently (30s) as a safety net; otherwise poll at 8s for freshness.
   useEffect(() => {
     if (!goalId) return;
-    const controller = new AbortController();
-    fetch(`/api/heartbeat/${goalId}`, { signal: controller.signal })
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (!data?.status) return;
+
+    function startPolling() {
+      if (pollRef.current) clearInterval(pollRef.current);
+      const interval = socketConnected.current ? 30_000 : 8_000;
+      pollRef.current = setInterval(() => {
+        fetchBuilding(true);
+      }, interval);
+    }
+
+    startPolling();
+
+    // Re-adjust polling interval when socket connection changes
+    const checkInterval = setInterval(() => {
+      startPolling();
+    }, 15_000);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      clearInterval(checkInterval);
+    };
+  }, [goalId, fetchBuilding]);
+
+  // Fetch heartbeat status (separate endpoint, not included in goals API)
+  // Polls every 10 seconds to keep heartbeat info fresh
+  useEffect(() => {
+    if (!goalId) return;
+    let cancelled = false;
+
+    async function fetchHeartbeat() {
+      try {
+        const customerId = typeof window !== 'undefined' ? localStorage.getItem('askelira_customer_id') : null;
+        const headers: Record<string, string> = {};
+        if (customerId) headers['x-customer-id'] = customerId;
+        const res = await fetch(`/api/heartbeat/${goalId}`, { headers });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!data?.status || cancelled) return;
         setBuilding((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
             heartbeatActive: data.status.active ?? false,
             lastHeartbeatAt: data.status.lastCheckedAt ? new Date(data.status.lastCheckedAt) : null,
+            currentAgent: data.status.currentAgent ?? null,
+            currentStep: data.status.currentStep ?? null,
           };
         });
-      })
-      .catch(() => { /* best-effort / aborted */ });
-    return () => controller.abort();
+      } catch {
+        /* best-effort */
+      }
+    }
+
+    fetchHeartbeat();
+    const interval = setInterval(fetchHeartbeat, 10_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [goalId]);
 
   // Socket.io real-time updates
   useEffect(() => {
     if (!goalId) return;
 
-    const socket = io({
-      path: '/api/socketio',
-      query: { goalId },
-      transports: ['websocket', 'polling'],
-      autoConnect: true,
-    });
+    let socket: Socket;
+    try {
+      socket = io({
+        path: '/api/socketio',
+        query: { goalId },
+        transports: ['websocket', 'polling'],
+        autoConnect: true,
+        reconnectionAttempts: 3,
+        timeout: 5000,
+      });
+    } catch {
+      // Socket.io unavailable -- polling will handle updates
+      return;
+    }
 
     socketRef.current = socket;
+
+    socket.on('connect', () => {
+      socketConnected.current = true;
+    });
+
+    socket.on('disconnect', () => {
+      socketConnected.current = false;
+    });
+
+    socket.on('connect_error', () => {
+      socketConnected.current = false;
+    });
 
     // Floor status changed
     socket.on(BUILDING_EVENTS.FLOOR_STATUS, (payload: { floorId: string; status: FloorState['status'] }) => {
@@ -325,8 +402,12 @@ export function useBuildingState(goalId: string) {
     return () => {
       socket.disconnect();
       socketRef.current = null;
+      socketConnected.current = false;
     };
   }, [goalId]);
 
-  return { building, isLoading, error, refetch: fetchBuilding };
+  // Public refetch always shows loading state
+  const refetch = useCallback(() => fetchBuilding(false), [fetchBuilding]);
+
+  return { building, isLoading, error, refetch };
 }

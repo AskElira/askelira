@@ -15,7 +15,7 @@ import {
   ELIRA_FLOOR_REVIEW_PROMPT,
 } from './agent-prompts';
 
-import { callClaudeWithTools, callClaudeWithSystem } from './openclaw-client';
+import { callClaudeWithTools, callClaudeWithSystem, PROVIDER } from './openclaw-client';
 import { routeAgentCall, ensureGatewayReady } from './agent-router';
 
 import {
@@ -421,7 +421,7 @@ export async function runFloor(floorId: string, _depth: number = 0): Promise<'li
       albaRaw = await routeAgentCall({
         systemPrompt: ALBA_RESEARCH_PROMPT,
         userMessage: albaMessage,
-        model: 'claude-sonnet-4-5-20250929',
+        ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
         maxTokens: 4096,
         agentName: 'Alba',
       });
@@ -479,7 +479,7 @@ export async function runFloor(floorId: string, _depth: number = 0): Promise<'li
     const vex1Raw = await routeAgentCall({
       systemPrompt: VEX_GATE1_PROMPT,
       userMessage: vex1Message,
-      model: 'claude-sonnet-4-5-20250929',
+      ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
       maxTokens: 2048,
       agentName: 'Vex1',
     });
@@ -638,7 +638,7 @@ export async function runFloor(floorId: string, _depth: number = 0): Promise<'li
     const vex2Raw = await routeAgentCall({
       systemPrompt: VEX_GATE2_PROMPT,
       userMessage: vex2Message,
-      model: 'claude-sonnet-4-5-20250929',
+      ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
       maxTokens: 2048,
       agentName: 'Vex2',
     });
@@ -699,7 +699,7 @@ export async function runFloor(floorId: string, _depth: number = 0): Promise<'li
     const eliraRaw = await routeAgentCall({
       systemPrompt: ELIRA_FLOOR_REVIEW_PROMPT,
       userMessage: eliraMessage,
-      model: 'claude-sonnet-4-5-20250929',
+      ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
       maxTokens: 1024,
       agentName: 'Elira',
     });

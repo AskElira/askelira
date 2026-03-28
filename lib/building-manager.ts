@@ -13,6 +13,11 @@ export interface Goal {
   status: 'planning' | 'building' | 'goal_met' | 'blocked';
   createdAt: Date;
   updatedAt: Date;
+  // Steven heartbeat tracking (for local runner)
+  steven_status: 'idle' | 'active' | 'done';
+  steven_current_agent: string | null;
+  steven_current_step: string | null;
+  steven_last_heartbeat?: Date;
 }
 
 export interface Floor {
@@ -83,6 +88,10 @@ function mapGoalRow(row: Record<string, unknown>): Goal {
     status: row.status as Goal['status'],
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
+    steven_status: (row.steven_status as Goal['steven_status']) ?? 'idle',
+    steven_current_agent: (row.steven_current_agent as string) ?? null,
+    steven_current_step: (row.steven_current_step as string) ?? null,
+    steven_last_heartbeat: row.steven_last_heartbeat ? new Date(row.steven_last_heartbeat as string) : undefined,
   };
 }
 
@@ -936,4 +945,111 @@ export async function getPendingExpansions(goalId: string): Promise<Array<{
   }
 
   return expansions;
+}
+
+// ============================================================
+// Steven Local Runner — Heartbeat & Status Updates
+// ============================================================
+
+/**
+ * Update Steven's live heartbeat in the goals table.
+ * Called by the local Steven runner after each step.
+ */
+export async function updateStevenHeartbeat(
+  goalId: string,
+  agent: string,
+  step: string,
+): Promise<void> {
+  try {
+    await sql`
+      UPDATE goals
+      SET
+        steven_status = 'active',
+        steven_current_agent = ${agent},
+        steven_current_step = ${step},
+        steven_last_heartbeat = NOW()
+      WHERE id = ${goalId}
+    `;
+  } catch (err) {
+    console.warn('[updateStevenHeartbeat] Failed:', err instanceof Error ? err.message : err);
+  }
+}
+
+/**
+ * Mark Steven as done for a goal.
+ */
+export async function markStevenDone(goalId: string): Promise<void> {
+  try {
+    await sql`
+      UPDATE goals
+      SET
+        steven_status = 'done',
+        steven_current_agent = NULL,
+        steven_current_step = NULL,
+        steven_last_heartbeat = NOW()
+      WHERE id = ${goalId}
+    `;
+  } catch (err) {
+    console.warn('[markStevenDone] Failed:', err instanceof Error ? err.message : err);
+  }
+}
+
+/**
+ * Get Steven heartbeat status for a goal (from DB, not memory).
+ */
+export async function getStevenHeartbeat(goalId: string): Promise<{
+  active: boolean;
+  lastCheckedAt: Date | null;
+  currentAgent: string | null;
+  currentStep: string | null;
+}> {
+  try {
+    const { rows } = await sql`
+      SELECT steven_status, steven_current_agent, steven_current_step, steven_last_heartbeat
+      FROM goals
+      WHERE id = ${goalId}
+    `;
+    if (!rows.length) {
+      return { active: false, lastCheckedAt: null, currentAgent: null, currentStep: null };
+    }
+    const row = rows[0];
+    return {
+      active: row.steven_status === 'active',
+      lastCheckedAt: row.steven_last_heartbeat ? new Date(row.steven_last_heartbeat) : null,
+      currentAgent: row.steven_current_agent ?? null,
+      currentStep: row.steven_current_step ?? null,
+    };
+  } catch {
+    return { active: false, lastCheckedAt: null, currentAgent: null, currentStep: null };
+  }
+}
+
+/**
+ * Get all goals that need Steven to run (planning/building phase, not done).
+ */
+export async function getPendingGoalsForSteven(): Promise<Goal[]> {
+  const { rows } = await sql`
+    SELECT id, customer_id, goal_text, customer_context, building_summary,
+           status, created_at, updated_at,
+           steven_status, steven_current_agent, steven_current_step, steven_last_heartbeat
+    FROM goals
+    WHERE status IN ('planning', 'building')
+      AND (steven_status IS NULL OR steven_status != 'done')
+    ORDER BY created_at ASC
+    LIMIT 10
+  `;
+  return rows.map((row) => ({
+    id: row.id,
+    customerId: row.customer_id,
+    goalText: row.goal_text,
+    customerContext: (row.customer_context as Record<string, unknown>) ?? {},
+    buildingSummary: row.building_summary,
+    status: row.status as Goal['status'],
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+    steven_status: (row.steven_status ?? 'idle') as Goal['steven_status'],
+    steven_current_agent: row.steven_current_agent ?? null,
+    steven_current_step: row.steven_current_step ?? null,
+    steven_last_heartbeat: row.steven_last_heartbeat ? new Date(row.steven_last_heartbeat) : undefined,
+  }));
 }
