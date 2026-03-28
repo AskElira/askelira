@@ -146,7 +146,7 @@ async function extractFromContent(
       routeAgentCall({
         systemPrompt: EXTRACTION_PROMPT,
         userMessage: `Category: ${category}\n\nWeb Content:\n${trimmed}`,
-        model: 'claude-sonnet-4-5-20250929',
+        ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
         maxTokens: 1024,
         agentName: 'PatternExtractor',
       }),

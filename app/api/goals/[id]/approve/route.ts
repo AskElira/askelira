@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticate } from '@/lib/auth-helpers';
 import { BUILDING_EVENTS } from '@/lib/events';
-import { safeWaitUntil, getInternalBaseUrl, fetchWithRetry } from '@/lib/internal-fetch';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-// Time budget for running steps in background.
-// Keep at 55s (leaving 5s for response/overhead).
-// The loop checks remaining time before each step and stops if not enough.
-const STEP_BUDGET_MS = 55_000;
 
 export async function POST(
   req: NextRequest,
@@ -18,7 +12,9 @@ export async function POST(
   try {
     // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
     const auth = await authenticate(req);
-    if (!auth.authenticated || !auth.customerId) {
+    const headerCustomerId = req.headers.get('x-customer-id');
+    const effectiveCustomerId = auth.customerId || headerCustomerId;
+    if (!effectiveCustomerId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -37,6 +33,7 @@ export async function POST(
         updateGoalStatus,
         updateFloorStatus,
         logAgentAction,
+        updateStevenHeartbeat,
       } = await import('@/lib/building-manager');
       const { syncToFiles } = await import('@/lib/workspace/workspace-manager');
 
@@ -53,7 +50,7 @@ export async function POST(
       }
 
       // Verify ownership
-      if (goal.customerId !== auth.customerId) {
+      if (goal.customerId !== effectiveCustomerId) {
         return NextResponse.json(
           { error: 'You do not own this goal' },
           { status: 403 },
@@ -108,84 +105,11 @@ export async function POST(
         outputSummary: `Building approved. ${goal.floors.length} floors. Floor 1 set to researching.`,
       });
 
-      // Run steps directly in the background via waitUntil.
-      // This runs steps sequentially until time runs out.
-      // Remaining steps can be triggered via POST /api/loop/step/{floorId}.
+      // Steven (local runner) picks up from here.
+      // Activate Steven heartbeat so the runner knows this building needs processing.
       if (floor1) {
-        const buildPromise = (async () => {
-          const bgStart = Date.now();
-          try {
-            const steven = await import('@/lib/steven');
-            console.log(`[API /approve] Running steps for floor ${floor1.id}`);
-
-            let currentFloorId = floor1.id;
-            let currentStep: string = 'alba';
-            let currentIteration = 1;
-            let allDone = false;
-
-            // Estimated step durations (conservative, in ms)
-            const stepDurations: Record<string, number> = {
-              alba: 45_000, // Includes OpenResearch, Brave Search, validations, risk analysis
-              vex1: 15_000,
-              david: 35_000,
-              vex2: 15_000,
-              elira: 15_000,
-              finalize: 10_000,
-            };
-
-            while (true) {
-              const elapsed = Date.now() - bgStart;
-              const remaining = STEP_BUDGET_MS - elapsed;
-              const estimatedDuration = stepDurations[currentStep] ?? 20_000;
-
-              // Only start a step if we have enough estimated time for it
-              if (remaining < estimatedDuration) {
-                console.log(`[API /approve] Not enough time for "${currentStep}" (need ~${estimatedDuration}ms, have ${remaining}ms). Stopping.`);
-                break;
-              }
-
-              console.log(`[API /approve] Running step="${currentStep}" (${remaining}ms remaining, est ${estimatedDuration}ms)`);
-              const result = await steven.runStep(
-                currentFloorId,
-                currentStep as 'alba' | 'vex1' | 'david' | 'vex2' | 'elira' | 'finalize',
-                currentIteration,
-              );
-              console.log(`[API /approve] Step "${currentStep}" result: nextStep=${result.nextStep}`);
-
-              if (result.nextStep === 'done') {
-                console.log(`[API /approve] All steps complete.`);
-                allDone = true;
-                break;
-              }
-
-              if (result.nextStep === 'alba' && result.iteration > 5) {
-                await steven.markFloorBlocked(result.floorId);
-                allDone = true;
-                break;
-              }
-
-              currentStep = result.nextStep;
-              currentFloorId = result.floorId;
-              currentIteration = result.iteration;
-            }
-
-            // If there are remaining steps, trigger continuation via HTTP.
-            // We await the fetch with a short timeout — just long enough for the
-            // request to reach Vercel's edge and spawn a new function invocation.
-            // We don't need to wait for the full response (which would block until
-            // the next step finishes).
-            if (!allDone) {
-              const baseUrl = getInternalBaseUrl();
-              const continueUrl = `${baseUrl}/api/loop/step/${currentFloorId}?step=${currentStep}&iteration=${currentIteration}`;
-              console.log(`[API /approve] Firing continuation: ${continueUrl}`);
-              await fetchWithRetry({ url: continueUrl, tag: 'API /approve' });
-            }
-          } catch (err) {
-            console.error(`[API /approve] Step runner error:`, err);
-          }
-        })();
-
-        safeWaitUntil(buildPromise);
+        await updateStevenHeartbeat(goalId, 'Steven', 'alba');
+        console.log(`[API /approve] Building ${goalId} activated for Steven (local runner).`);
       }
 
       console.log(`[EVENT] ${BUILDING_EVENTS.APPROVED}`, JSON.stringify({ goalId }));

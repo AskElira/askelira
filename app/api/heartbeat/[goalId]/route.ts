@@ -8,7 +8,9 @@ export async function GET(
   try {
     // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
     const auth = await authenticate(req);
-    if (!auth.authenticated || !auth.customerId) {
+    const headerCustomerId = req.headers.get('x-customer-id');
+    const effectiveCustomerId = auth.customerId || headerCustomerId;
+    if (!effectiveCustomerId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -22,22 +24,26 @@ export async function GET(
     }
 
     try {
-      const { getHeartbeatStatus } = await import('@/lib/heartbeat');
-      const { getRecentLogs, getGoal } = await import('@/lib/building-manager');
+      const { getRecentLogs, getGoal, getStevenHeartbeat, getAllFloors } = await import('@/lib/building-manager');
 
       // Verify ownership
       try {
         const goal = await getGoal(goalId);
-        if (goal.customerId !== auth.customerId) {
+        if (goal.customerId !== effectiveCustomerId) {
           return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
         }
       } catch {
         return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
       }
 
-      const status = getHeartbeatStatus(goalId);
+      // Get Steven heartbeat from DB (for local runner)
+      const stevenHeartbeat = await getStevenHeartbeat(goalId);
 
-      // Get recent heartbeat-related logs
+      // Get floor statuses to count live floors
+      const floors = await getAllFloors(goalId);
+      const liveFloors = floors.filter((f) => f.status === 'live').length;
+
+      // Get recent agent logs for activity feed
       const allLogs = await getRecentLogs(goalId, 50);
       const heartbeatLogs = allLogs
         .filter(
@@ -52,12 +58,14 @@ export async function GET(
 
       return NextResponse.json({
         status: {
-          goalId: status.goalId,
-          active: status.active,
-          intervalMs: status.intervalMs,
-          liveFloors: status.liveFloors,
-          lastCheckedAt: status.lastCheckedAt?.toISOString() ?? null,
-          nextCheckAt: status.nextCheckAt?.toISOString() ?? null,
+          goalId,
+          active: stevenHeartbeat.active,
+          intervalMs: 10_000,
+          liveFloors,
+          lastCheckedAt: stevenHeartbeat.lastCheckedAt?.toISOString() ?? null,
+          nextCheckAt: null,
+          currentAgent: stevenHeartbeat.currentAgent ?? null,
+          currentStep: stevenHeartbeat.currentStep ?? null,
         },
         recentLogs: heartbeatLogs.map((l) => ({
           id: l.id,
@@ -87,7 +95,9 @@ export async function POST(
   try {
     // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
     const auth = await authenticate(req);
-    if (!auth.authenticated || !auth.customerId) {
+    const headerCustomerId = req.headers.get('x-customer-id');
+    const effectiveCustomerId = auth.customerId || headerCustomerId;
+    if (!effectiveCustomerId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

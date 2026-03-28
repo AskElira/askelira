@@ -1,6 +1,6 @@
 import { createFloor, logAgentAction, updateGoalStatus } from './building-manager';
 import { ELIRA_FLOOR_ZERO_PROMPT, ELIRA_SIMPLIFY_PROMPT } from './agent-prompts';
-import { callClaudeWithSystem } from './openclaw-client';
+import { callClaudeWithSystem, PROVIDER } from './openclaw-client';
 import { routeAgentCall } from './agent-router';
 
 // ============================================================
@@ -109,7 +109,7 @@ export async function designBuilding(
   const rawResponse = await routeAgentCall({
     systemPrompt: ELIRA_FLOOR_ZERO_PROMPT,
     userMessage,
-    model: 'claude-sonnet-4-5-20250929',
+    ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
     maxTokens: 4096,
     agentName: 'Elira',
   });
@@ -137,7 +137,7 @@ export async function designBuilding(
       const simplifyRaw = await routeAgentCall({
         systemPrompt: ELIRA_SIMPLIFY_PROMPT,
         userMessage: simplifyMessage,
-        model: 'claude-sonnet-4-5-20250929',
+        ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
         maxTokens: 2048,
         agentName: 'Elira',
       });

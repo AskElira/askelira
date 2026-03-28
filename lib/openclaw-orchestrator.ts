@@ -63,7 +63,7 @@ export async function runSwarmDebate(
     const albaOutput = await routeAgentCall({
       systemPrompt: 'You are Alba, a research agent. Respond with valid JSON only.',
       userMessage: albaPrompt(question),
-      model: 'claude-sonnet-4-5-20250929',
+      ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
       maxTokens: 2000,
       agentName: 'Alba',
     });
@@ -110,7 +110,7 @@ export async function runSwarmDebate(
     const vexOutput = await routeAgentCall({
       systemPrompt: 'You are Vex, an audit agent. Respond with valid JSON only.',
       userMessage: vexPrompt(debate),
-      model: 'claude-sonnet-4-5-20250929',
+      ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
       maxTokens: 1500,
       agentName: 'Vex',
     });
@@ -131,7 +131,7 @@ export async function runSwarmDebate(
     const eliraOutput = await routeAgentCall({
       systemPrompt: 'You are Elira, a synthesis agent. Respond with valid JSON only.',
       userMessage: eliraPrompt(research, debate, audit),
-      model: 'claude-sonnet-4-5-20250929',
+      ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
       maxTokens: 2000,
       agentName: 'Elira',
     });

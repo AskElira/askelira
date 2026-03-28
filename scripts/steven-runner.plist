@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.askelira.steven</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/openclawd/.nvm/versions/node/v22.16.0/bin/node</string>
+    <string>/Users/openclawd/Desktop/AskElira-Projects/2.1-Production/askelira-bundled-npm/scripts/steven-runner.cjs</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/openclawd/Desktop/AskElira-Projects/2.1-Production/askelira-bundled-npm</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>POSTGRES_URL</key>
+    <string>postgresql://neondb_owner:npg_RZAv7g8pDFkC@ep-holy-star-anqvua6x-pooler.c-6.us-east-1.aws.neon.tech/neondb?channel_binding=require&amp;sslmode=require</string>
+    <key>OPENCLAW_GATEWAY_URL</key>
+    <string>ws://127.0.0.1:18789</string>
+    <key>OPENCLAW_GATEWAY_TOKEN</key>
+    <string>steven-local-runner-a8f3b2c1d4e5f6a7b8c9d0e1f2a3b4c</string>
+    <key>ANTHROPIC_API_KEY</key>
+    <string>ANTHROPIC_API_KEY_HERE</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/steven-runner.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/tmp/steven-runner-error.log</string>
+</dict>
+</plist>

@@ -13,7 +13,10 @@ export async function GET(
   try {
     // Unified auth: support both NextAuth session (web) and header-based auth (CLI)
     const auth = await authenticate(req);
-    if (!auth.authenticated || !auth.customerId) {
+    // Support x-customer-id header for guest mode (browser localStorage-based auth)
+    const headerCustomerId = req.headers.get('x-customer-id');
+    const effectiveCustomerId = auth.customerId || headerCustomerId;
+    if (!effectiveCustomerId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -32,7 +35,7 @@ export async function GET(
       const goal = await getGoal(goalId);
 
       // Verify ownership
-      if (goal.customerId !== auth.customerId) {
+      if (goal.customerId !== effectiveCustomerId) {
         return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
       }
       const recentLogs = await getRecentLogs(goalId, 20);

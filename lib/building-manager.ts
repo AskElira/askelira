@@ -45,6 +45,8 @@ export interface Floor {
   iterationCount: number;
   buildingContext: string | null;
   handoffNotes: string | null;
+  blockedRetries: number;
+  blockedAt: Date | null;
   createdAt: Date;
   completedAt: Date | null;
 }
@@ -285,6 +287,8 @@ export async function updateFloorStatus(
   // Build the completed_at value
   const completedAt =
     status === 'live' ? new Date().toISOString() : null;
+  const blockedAt =
+    status === 'blocked' ? new Date().toISOString() : null;
 
   const { rows } = await sql`
     UPDATE floors
@@ -299,7 +303,8 @@ export async function updateFloorStatus(
       swarm_validation_report = COALESCE(${extras?.swarmValidationReport ?? null}, swarm_validation_report),
       building_context = COALESCE(${extras?.buildingContext ?? null}, building_context),
       handoff_notes = COALESCE(${extras?.handoffNotes ?? null}, handoff_notes),
-      completed_at = COALESCE(${completedAt}::timestamptz, completed_at)
+      completed_at = COALESCE(${completedAt}::timestamptz, completed_at),
+      blocked_at = COALESCE(${blockedAt}::timestamptz, blocked_at)
     WHERE id = ${floorId}
     RETURNING goal_id
   `;
@@ -535,7 +540,8 @@ export async function resetFloor(floorId: string): Promise<void> {
       swarm_validation_report = NULL,
       building_context = NULL,
       handoff_notes = NULL,
-      completed_at = NULL
+      completed_at = NULL,
+      blocked_at = NULL
     WHERE id = ${floorId}
   `;
 }

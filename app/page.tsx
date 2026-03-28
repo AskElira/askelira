@@ -53,38 +53,9 @@ export default function Home() {
   }, []);
 
   function handleSubmit(question: string) {
-    setLoading(true);
-    setError(null);
-
-    const params = new URLSearchParams({ question, stream: '1' });
-    setStreamUrl(`/api/swarm?${params}`);
-
-    // Increase timeout for autoresearch (can take 40s)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
-
-    fetch('/api/swarm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, stream: false }),
-      credentials: 'include',
-      signal: controller.signal,
-    })
-      .then((res) => {
-        clearTimeout(timeoutId);
-        if (res.status === 429) throw new Error('Rate limit exceeded. Upgrade your plan for more debates.');
-        if (!res.ok) throw new Error('Failed to run swarm. Check your connection and try again.');
-        return res.json();
-      })
-      .then((data) => {
-        sessionStorage.setItem('lastResult', JSON.stringify(data));
-        router.push('/results');
-      })
-      .catch((err) => {
-        setError(err.message || 'Failed to run swarm. Check your connection and try again.');
-        setLoading(false);
-        setStreamUrl(null);
-      });
+    // Redirect to chat with the goal pre-filled
+    const encoded = encodeURIComponent(question);
+    router.push(`/chat?goal=${encoded}`);
   }
 
   function handleRetry() {

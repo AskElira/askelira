@@ -21,7 +21,24 @@ const WorkspaceFileBrowser = dynamic(
   { ssr: false },
 );
 const AnimatedBuilding3D = dynamic(
-  () => import('@/components/AnimatedBuilding3D'),
+  () => import('@/components/AnimatedBuilding3D').catch(() => ({
+    default: () => (
+      <div style={{
+        width: '100%',
+        height: '400px',
+        background: 'var(--panel)',
+        borderRadius: '0.75rem',
+        border: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+          3D visualization unavailable
+        </span>
+      </div>
+    ),
+  })),
   { ssr: false },
 );
 

@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Disallow API endpoints
+Disallow: /api/
+Disallow: /buildings/*/floor-*
+Disallow: /settings
+Disallow: /admin
+
+# Sitemap
+Sitemap: https://askelira.com/sitemap.xml
+
+# Crawl-delay for polite bots
+Crawl-delay: 1

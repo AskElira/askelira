@@ -12,7 +12,7 @@ import {
   ELIRA_EXPANSION_PROMPT,
 } from './agent-prompts';
 
-import { callClaudeWithSystem } from './openclaw-client';
+import { callClaudeWithSystem, PROVIDER } from './openclaw-client';
 import { routeAgentCall } from './agent-router';
 import { notify } from './notify';
 
@@ -365,7 +365,7 @@ export async function checkFloor(floorId: string): Promise<StevenResult> {
   const raw = await routeAgentCall({
     systemPrompt: STEVEN_HEARTBEAT_PROMPT,
     userMessage: stevenMessage,
-    model: 'claude-sonnet-4-5-20250929',
+    ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
     maxTokens: 1024,
     agentName: 'Steven',
   });
@@ -524,6 +524,13 @@ async function runHeartbeatCycle(goalId: string): Promise<void> {
       // Non-fatal — continue with live floor checks
     }
 
+    // Check for blocked floors that can be retried through the pipeline
+    try {
+      await checkBlockedFloors(goalId);
+    } catch (err) {
+      console.error(`[Heartbeat] Blocked floor check failed for ${goalId}:`, err);
+    }
+
     // Load live floors
     let liveFloors: Floor[];
     try {
@@ -660,7 +667,7 @@ async function handleEscalation(
     const stevenRaw = await routeAgentCall({
       systemPrompt: STEVEN_ESCALATION_PROMPT,
       userMessage: escalationMessage,
-      model: 'claude-sonnet-4-5-20250929',
+      ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
       maxTokens: 1024,
       agentName: 'Steven',
     });
@@ -686,7 +693,7 @@ async function handleEscalation(
     const eliraRaw = await routeAgentCall({
       systemPrompt: ELIRA_ESCALATION_PROMPT,
       userMessage: JSON.stringify(stevenEscalation, null, 2),
-      model: 'claude-sonnet-4-5-20250929',
+      ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
       maxTokens: 1024,
       agentName: 'Elira',
     });
@@ -924,6 +931,85 @@ async function checkStalledFloors(goalId: string): Promise<void> {
 }
 
 // ============================================================
+// Private: blocked floor recovery — reset and retry blocked floors
+// ============================================================
+
+const MAX_BLOCKED_RETRIES = 2;
+const BLOCKED_COOLDOWN_MS = 60 * 1000; // 60 seconds before heartbeat retries a blocked floor
+const blockedRecoveryTimestamps = new Map<string, number>();
+
+async function checkBlockedFloors(goalId: string): Promise<void> {
+  let allFloors: Floor[];
+  try {
+    allFloors = await getAllFloors(goalId);
+  } catch (err) {
+    console.error(`[Heartbeat] Failed to load floors for blocked check ${goalId}:`, err);
+    return;
+  }
+
+  const blockedFloors = allFloors.filter((f) => f.status === 'blocked');
+  if (blockedFloors.length === 0) return;
+
+  const now = Date.now();
+
+  for (const floor of blockedFloors) {
+    try {
+      // Cooldown: skip if we already attempted a recovery recently
+      const lastRecovery = blockedRecoveryTimestamps.get(floor.id);
+      if (lastRecovery && (now - lastRecovery) < BLOCKED_COOLDOWN_MS) {
+        continue;
+      }
+
+      // Check retry count — don't retry forever
+      const { sql } = await import('@vercel/postgres');
+      const { rows } = await sql`
+        SELECT COALESCE(blocked_retries, 0) as blocked_retries FROM floors WHERE id = ${floor.id}
+      `;
+      const retries = rows[0]?.blocked_retries || 0;
+
+      if (retries >= MAX_BLOCKED_RETRIES) {
+        continue; // Permanently blocked — retries exhausted
+      }
+
+      console.log(
+        `[Heartbeat] BLOCKED RECOVERY: Floor ${floor.floorNumber} "${floor.name}" (${floor.id}) ` +
+        `— retry ${retries + 1}/${MAX_BLOCKED_RETRIES}`,
+      );
+
+      blockedRecoveryTimestamps.set(floor.id, now);
+
+      // Reset the floor and restart from alba
+      await resetFloor(floor.id);
+
+      // Increment blocked_retries counter
+      await sql`
+        UPDATE floors SET blocked_retries = COALESCE(blocked_retries, 0) + 1 WHERE id = ${floor.id}
+      `;
+
+      await logAgentAction({
+        floorId: floor.id,
+        goalId: floor.goalId,
+        agentName: 'Steven',
+        action: 'blocked_recovery',
+        outputSummary: `Resetting blocked floor for retry ${retries + 1}/${MAX_BLOCKED_RETRIES}. Re-entering pipeline at alba.`,
+      });
+
+      // Restart via internal API call
+      const baseUrl = getInternalBaseUrl();
+      const restartUrl = `${baseUrl}/api/loop/step/${floor.id}?step=alba&iteration=1`;
+      console.log(`[Heartbeat] Restarting blocked floor: ${restartUrl}`);
+
+      await fetchWithRetry({ url: restartUrl, tag: 'Heartbeat/blocked-recovery' });
+    } catch (err) {
+      console.error(
+        `[Heartbeat] Blocked recovery failed for floor ${floor.id} (${floor.name}):`,
+        err,
+      );
+    }
+  }
+}
+
+// ============================================================
 // Feature 33: Steven weekly digest (called externally or by cron)
 // ============================================================
 
@@ -1112,7 +1198,7 @@ async function checkExpansionOpportunity(goalId: string): Promise<void> {
     const raw = await routeAgentCall({
       systemPrompt: ELIRA_EXPANSION_PROMPT,
       userMessage,
-      model: 'claude-sonnet-4-5-20250929',
+      ...(PROVIDER !== 'minimax' ? { model: 'claude-sonnet-4-5-20250929' } : {}),
       maxTokens: 1024,
       agentName: 'Elira',
     });
