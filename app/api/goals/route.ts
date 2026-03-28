@@ -10,9 +10,9 @@ export async function GET(req: NextRequest) {
     try {
       const { sql } = await import('@vercel/postgres');
 
-      // Require authentication -- unauthenticated users get empty list
+      // Require authentication -- unauthenticated users get 401
       if (!auth.authenticated || !auth.customerId) {
-        return NextResponse.json({ goals: [] });
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
       }
 
       const result = await sql`

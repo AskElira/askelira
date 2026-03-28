@@ -76,6 +76,10 @@ export default function BuildingsListPage() {
 
   useEffect(() => {
     fetchGoals();
+
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchGoals, 30_000);
+    return () => clearInterval(interval);
   }, [fetchGoals]);
 
   return (

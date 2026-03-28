@@ -63,6 +63,7 @@ export default function BuildingPage() {
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
   const [terminalMode, setTerminalMode] = useState<'full' | 'readonly' | null>(null);
   const [show3DView, setShow3DView] = useState(false);
+  const [isStartingBuilding, setIsStartingBuilding] = useState(false);
 
   // Phase 3: Check terminal availability
   useEffect(() => {
@@ -99,9 +100,12 @@ export default function BuildingPage() {
     async (expansion: { name: string; description: string; successCondition: string }) => {
       setExpandingFloor(expansion.name);
       try {
+        const customerId = typeof window !== 'undefined' ? localStorage.getItem('askelira_customer_id') : null;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (customerId) headers['x-customer-id'] = customerId;
         await fetch(`/api/goals/${goalId}/expand`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(expansion),
         });
         setPendingExpansions((prev) => prev.filter((e) => e.name !== expansion.name));
@@ -319,6 +323,43 @@ export default function BuildingPage() {
         liveFloors={liveFloorCount}
         suggestions={building.stevenSuggestions}
       />
+
+      {/* Start Building button — show when in planning phase and no floors running */}
+      {building.status === 'planning' && liveFloorCount === 0 && (
+        <button
+          onClick={async () => {
+            setIsStartingBuilding(true);
+            try {
+              const customerId = typeof window !== 'undefined' ? localStorage.getItem('askelira_customer_id') : null;
+              const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+              if (customerId) headers['x-customer-id'] = customerId;
+              await fetch(`/api/goals/${goalId}/approve`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({}),
+              });
+              refetch();
+            } finally {
+              setIsStartingBuilding(false);
+            }
+          }}
+          disabled={isStartingBuilding}
+          style={{
+            width: '100%',
+            padding: '0.875rem',
+            background: isStartingBuilding ? 'rgba(157, 114, 255, 0.3)' : 'rgba(157, 114, 255, 0.15)',
+            border: '1px solid rgba(157, 114, 255, 0.4)',
+            borderRadius: '0.5rem',
+            color: '#c084fc',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            cursor: isStartingBuilding ? 'not-allowed' : 'pointer',
+            marginTop: '0.75rem',
+          }}
+        >
+          {isStartingBuilding ? 'Starting Steven...' : '▶ Start Building'}
+        </button>
+      )}
 
       {/* Phase 10: Expansion suggestions */}
       {pendingExpansions.length > 0 && (
